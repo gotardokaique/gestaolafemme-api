@@ -1,7 +1,5 @@
 package com.gestao.lafemme.api.entity;
 
-import jakarta.persistence.*;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,16 +8,59 @@ import java.util.Objects;
 
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.gestao.lafemme.api.enuns.RoleEnum;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+
 @Entity
 @Table(name = "usuarios")
 public class Usuario implements UserDetails, Serializable {
+	
+    public Usuario(String nome, String email, String senha, RoleEnum role) {
+        this.nome = nome;
+        this.email = email;
+        this.senha = senha;
+        this.role = role;
+    }
+    
+    public Usuario(String nome, String email, String senha, RoleEnum role, PerfilUsuario perfil) {
+        this.nome = nome;
+        this.email = email;
+        this.senha = senha;
+        this.role = role;
+        this.perfilUsuario = perfil;
+    }
+
 
     @Override
     public String getUsername() {
         return email;
     }
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "usu_role", nullable = false)
+    private RoleEnum role;
+  
 
-    @Override
+    public void setId(Long id) {
+		this.id = id;
+	}
+
+	@Override
     public String getPassword() {
         return senha;
     }

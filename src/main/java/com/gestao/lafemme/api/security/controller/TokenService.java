@@ -1,4 +1,4 @@
-package com.gestao.api.security.controller;
+package com.gestao.lafemme.api.security.controller;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -7,8 +7,8 @@ import java.time.ZoneOffset;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.gestao.api.entities.Usuario;
-import com.gestao.api.security.JwtTokenProvider;
+import com.gestao.lafemme.api.entity.Usuario;
+import com.gestao.lafemme.api.security.JwtTokenProvider;
 
 import jakarta.servlet.http.HttpServletRequest;
 

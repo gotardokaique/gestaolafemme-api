@@ -83,6 +83,13 @@ public class TransactionDB {
         Objects.requireNonNull(id, "id não pode ser nulo");
         return entityManager.find(type, id);
     }
+    
+    @Transactional(readOnly = true)
+    public <T> T selectById(Class<T> type, Long id) {
+        Objects.requireNonNull(type, "tipo não pode ser nulo");
+        Objects.requireNonNull(id, "id não pode ser nulo");
+        return entityManager.find(type, id);
+    }
 
     @Transactional(readOnly = true)
     public <T> List<T> selectAll(Class<T> type) {

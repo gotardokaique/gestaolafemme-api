@@ -1,15 +1,15 @@
-package com.gestao.api.security.controller;
+package com.gestao.lafemme.api.security.controller;
 
 import java.security.SecureRandom;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,21 +18,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gestao.api.security.controller.RegisterUserBO;
-import com.gestao.api.controllers.DTOs.LoginRequestDTO;
-import com.gestao.api.controllers.DTOs.LoginResponseDTO;
-import com.gestao.api.controllers.DTOs.RegistroUsuarioRequestDTO;
-import com.gestao.api.controllers.DTOs.ForgotPasswordDTO;
-import com.gestao.api.controllers.DTOs.ResetPasswordDTO;
-import com.gestao.api.entities.Usuario;
-import com.gestao.api.security.controller.UsuarioRepository;
-import com.gestao.api.security.controller.EmailService;
-import com.gestao.api.security.controller.UsuarioServiceValidacao;
+import com.gestao.lafemme.api.entity.Usuario;
+import com.gestao.lafemme.api.enuns.RoleEnum;
+import com.gestao.lafemme.api.security.controller.DTOs.LoginRequestDTO;
+import com.gestao.lafemme.api.security.controller.DTOs.RegistroUsuarioRequestDTO;
+import com.gestao.lafemme.api.security.controller.DTOs.ResetPasswordDTO;
 
 import jakarta.validation.Valid;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -44,7 +36,7 @@ public class AuthenticationController {
     @Autowired private UsuarioRepository repository;
     @Autowired private TokenService tokenService;
     @Autowired private SessionService sessionService;
-    @Autowired private EmailService emailService;
+//    @Autowired private EmailService emailService;
     @Autowired private StringRedisTemplate redisTemplate;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private RegisterUserBO registerBO;
@@ -108,7 +100,7 @@ public class AuthenticationController {
         }
 
         String hashed = passwordEncoder.encode(senha);
-        boolean isCadastradado = registerBO.cadastrarUsuario(nome, email, hashed, null);
+        boolean isCadastradado = registerBO.cadastrarUsuario(nome, email, hashed, RoleEnum.ROLE_ADMIN, 1L);
         
         if (isCadastradado == false) {
         	return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -118,20 +110,20 @@ public class AuthenticationController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody @Valid ForgotPasswordDTO data) {
-
-        UserDetails ud = repository.findByEmail(data.email());
-        if (ud instanceof Usuario user) {
-            String code       = generateRandomCode(6);
-            String codeKey    = RESET_CODE_PREFIX + data.email();
-            String attemptKey = RESET_ATTEMPT_PREFIX + data.email();
-            redisTemplate.opsForValue().set(codeKey, code, CODE_EXPIRATION_MINUTES, TimeUnit.MINUTES);
-            redisTemplate.delete(attemptKey);
-            emailService.sendPasswordResetCode(data.email(), code);
-        }
-        return ResponseEntity.ok("Se o e-mail existir, você receberá um código de redefinição.");
-    }
+//    @PostMapping("/forgot-password")
+//    public ResponseEntity<?> forgotPassword(@RequestBody @Valid ForgotPasswordDTO data) {
+//
+//        UserDetails ud = repository.findByEmail(data.email());
+//        if (ud instanceof Usuario user) {
+//            String code       = generateRandomCode(6);
+//            String codeKey    = RESET_CODE_PREFIX + data.email();
+//            String attemptKey = RESET_ATTEMPT_PREFIX + data.email();
+//            redisTemplate.opsForValue().set(codeKey, code, CODE_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+//            redisTemplate.delete(attemptKey);
+////            emailService.sendPasswordResetCode(data.email(), code);
+//        }
+//        return ResponseEntity.ok("Se o e-mail existir, você receberá um código de redefinição.");
+//    }
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody @Valid ResetPasswordDTO data) {

@@ -1,10 +1,10 @@
-package com.gestao.api.security.controller;
+package com.gestao.lafemme.api.security.controller;
 
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.gestao.api.db.TransactionDB;
+import com.gestao.lafemme.api.db.TransactionDB;
 
 @Service
 public class UsuarioServiceValidacao {
@@ -18,7 +18,7 @@ public class UsuarioServiceValidacao {
 	public Boolean validarEmailJaCadastrado (String email) {
         String jpql = 
                 "   select usu                   " +
-                "   FROM Usuario usu             " +
+                "   FROM Usuarios usu             " +
                 "   WHERE 1 = 1                  " +
                 "   AND usu.email ='" + email + "'";
 		 

@@ -1,34 +1,25 @@
-package com.gestao.api.security.controller;
+package com.gestao.lafemme.api.security.controller;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import javax.naming.AuthenticationException;
-
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
-import com.gestao.api.controllers.DTOs.LoginResponseDTO;
-import com.gestao.api.db.TransactionDB;
-import com.gestao.api.entities.Usuario;
-import com.gestao.api.enuns.RoleEnum;
-import com.gestao.api.security.controller.AuthenticationController;
-import com.gestao.api.security.controller.SessionService;
-import com.gestao.api.security.controller.TokenService;
-import com.gestao.api.security.controller.UsuarioRepository;
-import com.gestao.api.security.controller.UsuarioServiceValidacao;
+import com.gestao.lafemme.api.db.TransactionDB;
+import com.gestao.lafemme.api.entity.PerfilUsuario;
+import com.gestao.lafemme.api.entity.Usuario;
+import com.gestao.lafemme.api.enuns.RoleEnum;
+import com.gestao.lafemme.api.security.controller.DTOs.LoginResponseDTO;
 
 @Component
 public class RegisterUserBO {
@@ -100,10 +91,12 @@ public class RegisterUserBO {
 		return usuarioServiceValidacao.validarEmailJaCadastrado(email);
 	}
 
-    public Boolean cadastrarUsuario(String nome, String email, String hashed, RoleEnum role) {
+    public Boolean cadastrarUsuario(String nome, String email, String hashed, RoleEnum role, Long perfilUsuarioId) {
         boolean isUserCadastrado;
 
-        var usuario = new Usuario(nome, email, hashed, role);
+        PerfilUsuario perfil = trans.selectById(PerfilUsuario.class, perfilUsuarioId);
+        
+        var usuario = new Usuario(nome, email, hashed, role, perfil);
 
         try {
             trans.insert(usuario);
