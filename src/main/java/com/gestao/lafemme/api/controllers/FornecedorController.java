@@ -43,9 +43,7 @@ public class FornecedorController {
     public ResponseEntity<List<FornecedorResponseDTO>> listar(
             @RequestParam(name = "ativos", required = false, defaultValue = "true") boolean ativos
     ) {
-        List<Fornecedor> lista = ativos
-                ? fornecedorService.listarAtivos()
-                : fornecedorService.listarTodos();
+        List<Fornecedor> lista = fornecedorService.listarTodos();
 
         return ResponseEntity.ok(lista.stream().map(FornecedorResponseDTO::from).toList());
     }
@@ -73,7 +71,7 @@ public class FornecedorController {
 
     @PatchMapping("/{id}/desativar")
     public ResponseEntity<Void> desativar(@PathVariable Long id) {
-        fornecedorService.desativar(id);
+        fornecedorService.ativarDesativar(id);
         return ResponseEntity.noContent().build();
     }
 

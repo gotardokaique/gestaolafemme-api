@@ -1,5 +1,6 @@
 package com.gestao.lafemme.api.services;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -29,35 +30,40 @@ public class FornecedorService {
             throw new BusinessException("Nome do fornecedor é obrigatório.");
         }
 
-        Fornecedor f = new Fornecedor();
-        f.setNome(nome.trim());
-        f.setTelefone(telefone);
-        f.setEmail(email);
-        f.setAtivo(true);
+        Fornecedor fornBean = new Fornecedor();
+        fornBean.setNome(nome.trim());
+        fornBean.setTelefone(telefone);
+        fornBean.setEmail(email);
+        fornBean.setAtivo(true);
 
-        // Se Fornecedor tiver usuario (no seu diagrama de classe não tem; se tiver, set aqui)
-        // f.setUsuario(UserContext.getUsuarioAutenticado());
-
-        return dao.insert(f);
+        return dao.insert(fornBean);
     }
 
     // ===================== LISTAR =====================
-
-    @Transactional(readOnly = true)
-    public List<Fornecedor> listarAtivos() {
-        return dao.select()
-                .from(Fornecedor.class)
-                .where("ativo", Condicao.EQUAL, true)
-                .orderBy("nome", true)
-                .list();
-    }
+//
+//    @Transactional(readOnly = true)
+//    public List<Fornecedor> listarAtivos() {
+//        return dao.select()
+//                .from(Fornecedor.class)
+//                .where("ativo", Condicao.EQUAL, true)
+//                .orderBy("nome", true)
+//                .list();
+//    }
 
     @Transactional(readOnly = true)
     public List<Fornecedor> listarTodos() {
-        return dao.select()
-                .from(Fornecedor.class)
-                .orderBy("nome", true)
-                .list();
+    	List<Fornecedor> fornList;
+    	
+    	try {
+    		fornList = dao.select()
+    				.from(Fornecedor.class)
+    				.orderBy("nome", true)
+    				.list();
+    		
+    	} catch (NotFoundException no) {
+    		fornList = new ArrayList<Fornecedor>();
+    	}
+    	return fornList;
     }
 
     // ===================== BUSCAR =====================
@@ -77,22 +83,27 @@ public class FornecedorService {
 
     @Transactional
     public Fornecedor atualizar(Long id, String nome, String telefone, String email, Boolean ativo) {
-        Fornecedor f = buscarPorId(id);
+        Fornecedor fornBean = buscarPorId(id);
 
-        if (nome != null && !nome.isBlank()) f.setNome(nome.trim());
-        if (telefone != null) f.setTelefone(telefone);
-        if (email != null) f.setEmail(email);
-        if (ativo != null) f.setAtivo(ativo);
+        if (nome != null ) fornBean.setNome(nome.trim());
+        if (telefone != null) fornBean.setTelefone(telefone);
+        if (email != null) fornBean.setEmail(email);
+        if (ativo != null) fornBean.setAtivo(ativo);
 
-        return dao.update(f);
+        return dao.update(fornBean);
     }
 
     // ===================== DESATIVAR =====================
 
     @Transactional
-    public void desativar(Long id) {
-        Fornecedor f = buscarPorId(id);
-        f.setAtivo(false);
-        dao.update(f);
+    public void ativarDesativar(Long id) {
+        Fornecedor fornBean = buscarPorId(id);
+        if (fornBean.isAtivo()) {
+        	fornBean.setAtivo(false);        	
+        } else {
+        	fornBean.setAtivo(true);
+        }
+        
+        dao.update(fornBean);
     }
 }
