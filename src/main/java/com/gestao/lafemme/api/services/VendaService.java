@@ -37,10 +37,10 @@ public class VendaService {
      */
     @Transactional
     public Venda criarVenda(
-            BigDecimal valorTotal,
-            String formaPagamento,
-            String observacao
-    ) {
+    		BigDecimal valorTotal,
+    		String formaPagamento,
+    		String observacao
+    		) {
 
         if (valorTotal == null || valorTotal.signum() <= 0) {
             throw new BusinessException("Valor total da venda deve ser maior que zero.");
@@ -68,14 +68,15 @@ public class VendaService {
      * Regras:
      * - quantidade > 0
      * - estoque não pode ficar negativo
+     * @throws Exception 
      */
     @Transactional
-    public MovimentacaoEstoque adicionarMovimentacaoSaida(
+    private MovimentacaoEstoque adicionarMovimentacaoSaida(
             Long vendaId,
             Long produtoId,
             int quantidade,
             String observacao
-    ) {
+    ) throws Exception {
 
         if (vendaId == null) throw new BusinessException("vendaId é obrigatório.");
         if (produtoId == null) throw new BusinessException("produtoId é obrigatório.");
@@ -115,7 +116,7 @@ public class VendaService {
     // ===================== LANÇAMENTO FINANCEIRO (ENTRADA) =====================
 
     @Transactional
-    public void gerarLancamentoFinanceiro(Venda venda) {
+    private void gerarLancamentoFinanceiro(Venda venda) {
 
         LancamentoFinanceiro lanc = new LancamentoFinanceiro();
         lanc.setVenda(venda);
@@ -170,7 +171,7 @@ public class VendaService {
         }
     }
 
-    private Estoque buscarEstoquePorProduto(Long produtoId) {
+    private Estoque buscarEstoquePorProduto(Long produtoId) throws Exception {
         Estoque estoque = dao.select()
                 .from(Estoque.class)
                 .join("produto")

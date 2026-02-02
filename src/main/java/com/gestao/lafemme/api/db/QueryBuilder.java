@@ -10,8 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.dev.DevSqlLogger;
+import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.Query;
 
 public class QueryBuilder {
@@ -286,10 +288,9 @@ public class QueryBuilder {
         return (List<T>) query.getResultList();
     }
 
-
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
-    public <T> T one() {
+    public <T> T one() throws Exception {
         Query query;
 
         if (projection && entityClass != null) {
@@ -300,24 +301,50 @@ public class QueryBuilder {
             query = entityManager.createQuery(jpql.toString());
         }
 
-        if (maxResults != null) {
-            query.setMaxResults(maxResults);
-        }
-
         for (int i = 0; i < params.size(); i++) {
             query.setParameter(i + 1, params.get(i));
-        }	
+        }
+
+        // Sempre garante 1 resultado no máximo, pra simular "one"
+        query.setMaxResults(1);
 
         DevSqlLogger.logSql(jpql.toString(), params);
 
+        List<?> rows = query.getResultList();
+
+        if (rows == null || rows.isEmpty()) {
+            String entidade = (entityClass != null ? entityClass.getSimpleName() : entityName != null ? entityName : "Entidade");
+
+            Object idInferido = inferIdIfPossible();
+
+            if (idInferido != null) {
+                log.warn("{} não encontrada para o id {}", entidade, idInferido);
+                throw new EntityNotFoundException(entidade + " não encontrada para o id " + idInferido);
+            }
+
+            log.warn("{} não encontrada", entidade);
+            throw new NotFoundException(entidade + " não encontrada");
+        }
+
+        Object row = rows.get(0);
+
         if (projection && entityClass != null) {
-            Object row = query.getSingleResult();
             return (T) mapSingleRowToEntity(row);
         }
 
-        return (T) query.getSingleResult();
+        return (T) row;
     }
 
+    private Object inferIdIfPossible() {
+        String q = jpql.toString();
+        if (q == null) return null;
+
+        boolean mencionaId = q.contains(".id") || q.matches("(?is).*\\bid\\b.*");
+        if (mencionaId && params.size() == 1) {
+            return params.get(0);
+        }
+        return null;
+    }
 
     @Transactional(readOnly = true)
     public <T> List<T> list(Class<T> resultClass) {
@@ -508,7 +535,7 @@ public class QueryBuilder {
         return build();
     }
     
-    public <T> T id(Number id) {
+    public <T> T id(Number id) throws Exception {
         if (id == null) {
             throw new IllegalArgumentException("id não pode ser nulo");
         }
@@ -521,11 +548,24 @@ public class QueryBuilder {
             throw new IllegalStateException("id() não deve ser usado com select(...) de campos específicos.");
         }
 
-        where("id", Condicao.EQUAL, id);
-
         @SuppressWarnings("unchecked")
-        T result = (T) one(); // reutiliza o fluxo já existente do one()
+        Class<T> clazz = (Class<T>) entityClass;
 
-        return result;
+        // Se seu PK for Long (o mais comum), garante compatibilidade.
+        // Se seu PK for outro tipo, ajuste aqui.
+        Object pk = (id instanceof Long) ? id : Long.valueOf(id.longValue());
+
+        T entity = entityManager.find(clazz, pk);
+
+        if (entity == null) {
+            String entidade = entityClass.getSimpleName();
+            // LOG LIMPO: só a mensagem (sem stacktrace aqui)
+            log.warn("{} não encontrada para o id {}", entidade, id);
+
+            // Exception “seca” (sem cause) com a mensagem exata que você quer
+            throw new Exception(entidade + " não encontrada para o id " + id);
+        }
+
+        return entity;
     }
 }
