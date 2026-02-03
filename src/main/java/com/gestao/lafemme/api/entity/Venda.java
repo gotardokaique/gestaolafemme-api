@@ -8,25 +8,32 @@ import java.util.List;
 import java.util.Objects;
 
 @Entity
-@Table(name = "vendas")
+@Table(name = "venda")
 public class Venda {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "vend_id")
     private Long id;
 
+    // data da venda (regra de negócio)
     @Temporal(TemporalType.DATE)
-    @Column(name = "data_venda", nullable = false)
+    @Column(name = "vend_data_venda", nullable = false)
     private Date dataVenda;
 
-    @Column(name = "valor_total", nullable = false, precision = 19, scale = 2)
+    // auditoria / cadastro
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "vend_data_cadastro", nullable = false)
+    private Date dataCadastro;
+
+    @Column(name = "vend_valor_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal valorTotal;
 
-    @Column(name = "forma_pagamento", nullable = false, length = 60)
+    @Column(name = "vend_forma_pagamento", nullable = false, length = 60)
     private String formaPagamento;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @JoinColumn(name = "usu_id", nullable = false)
     private Usuario usuario;
 
     @OneToMany(mappedBy = "venda", fetch = FetchType.LAZY)
@@ -34,19 +41,26 @@ public class Venda {
 
     @OneToMany(mappedBy = "venda", fetch = FetchType.LAZY)
     private List<LancamentoFinanceiro> lancamentos = new ArrayList<>();
+    
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "uni_id", nullable = false)
+    private Unidade unidade;
 
-    public Venda() {
-    }
+
+    public Venda() {}
 
     @PrePersist
     protected void onCreate() {
-        if (this.dataVenda == null) {
-            this.dataVenda = new Date();
-        }
+        if (this.dataVenda == null) this.dataVenda = new Date();
+        if (this.dataCadastro == null) this.dataCadastro = new Date();
     }
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public Date getDataVenda() {
@@ -55,6 +69,14 @@ public class Venda {
 
     public void setDataVenda(Date dataVenda) {
         this.dataVenda = dataVenda;
+    }
+
+    public Date getDataCadastro() {
+        return dataCadastro;
+    }
+
+    public void setDataCadastro(Date dataCadastro) {
+        this.dataCadastro = dataCadastro;
     }
 
     public BigDecimal getValorTotal() {

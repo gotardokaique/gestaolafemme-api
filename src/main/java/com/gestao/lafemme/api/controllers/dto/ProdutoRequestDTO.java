@@ -6,5 +6,6 @@ public record ProdutoRequestDTO(
         String descricao,
         Long categoriaId,
         Integer estoqueMinimo,
-        Boolean ativo
+        Boolean ativo,
+        Integer quantidadeId
 ) {}

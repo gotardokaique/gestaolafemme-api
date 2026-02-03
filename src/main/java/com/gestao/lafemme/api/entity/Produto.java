@@ -2,47 +2,67 @@ package com.gestao.lafemme.api.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Date;
 import java.util.Objects;
 
 @Entity
-@Table(name = "produtos")
+@Table(name = "produto")
 public class Produto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "prod_id")
     private Long id;
 
-    @Column(nullable = false, length = 140)
+    @Column(name = "prod_nome", nullable = false, length = 140)
     private String nome;
 
-    @Column(nullable = false, unique = true, length = 60)
+    @Column(name = "prod_codigo", nullable = false, unique = true, length = 60)
     private String codigo;
 
-    @Column(length = 255)
+    @Column(name = "prod_descricao", length = 255)
     private String descricao;
 
-    @Column(name = "valor_custo", nullable = false, precision = 19, scale = 2)
+    @Column(name = "prod_valor_custo", nullable = false, precision = 19, scale = 2)
     private BigDecimal valorCusto;
 
-    @Column(name = "valor_venda", nullable = false, precision = 19, scale = 2)
+    @Column(name = "prod_valor_venda", nullable = false, precision = 19, scale = 2)
     private BigDecimal valorVenda;
 
-    @Column(nullable = false)
+    @Column(name = "prod_ativo", nullable = false)
     private boolean ativo;
 
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "prod_data_cadastro", nullable = false)
+    private Date dataCadastro;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "categoria_produto_id", nullable = false)
+    @JoinColumn(name = "catp_id", nullable = false)
     private CategoriaProduto categoriaProduto;
 
     @OneToOne(mappedBy = "produto", fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false)
     private Estoque estoque;
+    
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "uni_id", nullable = false)
+    private Unidade unidade;
+
 
     public Produto() {}
 
+    @PrePersist
+    protected void onCreate() {
+        if (this.dataCadastro == null) this.dataCadastro = new Date();
+        if (!this.ativo) this.ativo = true;
+    }
+
     public Long getId() {
         return id;
+    }
+
+    // evite setId em produção; mantenho se precisar em testes
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getNome() {
@@ -91,6 +111,14 @@ public class Produto {
 
     public void setAtivo(boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public Date getDataCadastro() {
+        return dataCadastro;
+    }
+
+    public void setDataCadastro(Date dataCadastro) {
+        this.dataCadastro = dataCadastro;
     }
 
     public CategoriaProduto getCategoriaProduto() {

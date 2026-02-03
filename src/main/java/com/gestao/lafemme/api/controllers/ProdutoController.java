@@ -33,60 +33,36 @@ public class ProdutoController {
     }
 
     @PostMapping
-    public ResponseEntity<ProdutoResponseDTO> criar(@RequestBody ProdutoRequestDTO dto) throws Exception {
-        Produto criado = produtoService.criarProduto(
-                dto.nome(),
-                dto.codigo(),
-                dto.descricao(),
-                dto.categoriaId(),
-                dto.estoqueMinimo() != null ? dto.estoqueMinimo() : 0
-        );
-
-        Produto completo = produtoService.buscarPorId(criado.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ProdutoResponseDTO.from(completo));
+    public ResponseEntity<String> criarProd(@RequestBody ProdutoRequestDTO dto) throws Exception {
+    	
+    	produtoService.criarProduto(dto);
+       
+        return ResponseEntity.status(HttpStatus.CREATED).body("Produto criado com sucesso !");
     }
 
     @GetMapping
-    public ResponseEntity<List<ProdutoResponseDTO>> listar(
-            @RequestParam(name = "ativos", required = false) Boolean ativos
-    ) {
-        List<Produto> lista = produtoService.listarProdutos(ativos);
-        return ResponseEntity.ok(lista.stream().map(ProdutoResponseDTO::from).toList());
+    public ResponseEntity<List<ProdutoResponseDTO>> listarProd(@RequestParam(name = "ativos", required = false) Boolean ativo) {
+        
+        return ResponseEntity.ok(produtoService.listarProdutos(ativo));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProdutoResponseDTO> buscarPorId(@PathVariable Long id) {
-        Produto p = produtoService.buscarPorId(id);
-        return ResponseEntity.ok(ProdutoResponseDTO.from(p));
+    public ResponseEntity<ProdutoResponseDTO> buscarPorId(@PathVariable Long id) throws Exception {
+
+        return ResponseEntity.ok(produtoService.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProdutoResponseDTO> atualizar(
-            @PathVariable Long id,
-            @RequestBody ProdutoRequestDTO dto
-    ) throws Exception {
-        Produto atualizado = produtoService.editarProduto(
-                id,
-                dto.nome(),
-                dto.codigo(),
-                dto.descricao(),
-                dto.categoriaId(),
-                dto.ativo()
-        );
-
-        Produto completo = produtoService.buscarPorId(atualizado.getId());
-        return ResponseEntity.ok(ProdutoResponseDTO.from(completo));
+    public ResponseEntity<String> atualizarProd(@PathVariable Integer id, @RequestBody ProdutoRequestDTO dto) throws Exception {
+    	
+    	produtoService.editarProduto(id, dto);
+    
+        return ResponseEntity.status(HttpStatus.CREATED).body("Produto criado com sucesso !");
     }
 
-    @PatchMapping("/{id}/desativar")
-    public ResponseEntity<Void> desativar(@PathVariable Long id, @RequestBody(required = false) ProdutoMotivoDTO dto) throws Exception {
-        produtoService.desativarProduto(id, dto != null ? dto.motivo() : null);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/ativar")
-    public ResponseEntity<Void> ativar(@PathVariable Long id, @RequestBody(required = false) ProdutoMotivoDTO dto) throws Exception {
-        produtoService.ativarProduto(id, dto != null ? dto.motivo() : null);
+    @PatchMapping("/{id}/ativar-inativar")
+    public ResponseEntity<Void> ativarDesativar(@PathVariable Integer id, @RequestBody(required = false) ProdutoMotivoDTO dto) throws Exception {
+        produtoService.ativarInativarProduto(id, dto != null ? dto.motivo() : null);
         return ResponseEntity.noContent().build();
     }
 

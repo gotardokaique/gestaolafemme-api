@@ -6,8 +6,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.context.UserContext;
-import com.gestao.lafemme.api.db.Condicao;
+import com.gestao.lafemme.api.controllers.dto.FornecedorRequestDTO;
+import com.gestao.lafemme.api.controllers.dto.FornecedorResponseDTO;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.entity.Fornecedor;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
@@ -25,18 +25,18 @@ public class FornecedorService {
     // ===================== CRIAR =====================
 
     @Transactional
-    public Fornecedor criar(String nome, String telefone, String email) {
-        if (nome == null || nome.isBlank()) {
+    public void  criarFornecedor(FornecedorRequestDTO dto) {
+        if (dto.nome() == null || dto.nome().isBlank()) {
             throw new BusinessException("Nome do fornecedor é obrigatório.");
         }
 
         Fornecedor fornBean = new Fornecedor();
-        fornBean.setNome(nome.trim());
-        fornBean.setTelefone(telefone);
-        fornBean.setEmail(email);
+        fornBean.setNome(dto.nome().trim());
+        fornBean.setTelefone(dto.telefone());
+        fornBean.setEmail(dto.email());
         fornBean.setAtivo(true);
 
-        return dao.insert(fornBean);
+        dao.insert(fornBean);
     }
 
     // ===================== LISTAR =====================
@@ -51,7 +51,7 @@ public class FornecedorService {
 //    }
 
     @Transactional(readOnly = true)
-    public List<Fornecedor> listarTodos() {
+    public List<FornecedorResponseDTO> listarTodos() {
     	List<Fornecedor> fornList;
     	
     	try {
@@ -63,13 +63,13 @@ public class FornecedorService {
     	} catch (NotFoundException no) {
     		fornList = new ArrayList<Fornecedor>();
     	}
-    	return fornList;
+    	return FornecedorResponseDTO.refactor(fornList);
     }
 
     // ===================== BUSCAR =====================
 
     @Transactional(readOnly = true)
-    public Fornecedor buscarPorId(Long id) {
+    public Fornecedor buscarPorId(Integer id) {
         try {
             return dao.select()
                     .from(Fornecedor.class)
@@ -82,21 +82,21 @@ public class FornecedorService {
     // ===================== ATUALIZAR =====================
 
     @Transactional
-    public Fornecedor atualizar(Long id, String nome, String telefone, String email, Boolean ativo) {
+    public void atualizar(Integer id, FornecedorRequestDTO dto) {
         Fornecedor fornBean = buscarPorId(id);
 
-        if (nome != null ) fornBean.setNome(nome.trim());
-        if (telefone != null) fornBean.setTelefone(telefone);
-        if (email != null) fornBean.setEmail(email);
-        if (ativo != null) fornBean.setAtivo(ativo);
+        if (dto.nome() != null ) fornBean.setNome(dto.nome().trim());
+        if (dto.telefone() != null) fornBean.setTelefone(dto.telefone());
+        if (dto.email() != null) fornBean.setEmail(dto.email());
+        if (dto.ativo() != null) fornBean.setAtivo(dto.ativo());
 
-        return dao.update(fornBean);
+        dao.update(fornBean);
     }
 
     // ===================== DESATIVAR =====================
 
     @Transactional
-    public void ativarDesativar(Long id) {
+    public void ativarDesativar(Integer id) {
         Fornecedor fornBean = buscarPorId(id);
         if (fornBean.isAtivo()) {
         	fornBean.setAtivo(false);        	

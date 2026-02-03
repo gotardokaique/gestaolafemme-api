@@ -1,5 +1,9 @@
 package com.gestao.lafemme.api.controllers.dto;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import com.gestao.lafemme.api.entity.Fornecedor;
 
 public record FornecedorResponseDTO(
@@ -9,13 +13,20 @@ public record FornecedorResponseDTO(
         String email,
         Boolean ativo
 ) {
-    public static FornecedorResponseDTO from(Fornecedor f) {
+    public static FornecedorResponseDTO refactor(Fornecedor forn) {
         return new FornecedorResponseDTO(
-                f.getId(),
-                f.getNome(),
-                f.getTelefone(),
-                f.getEmail(),
-                f.isAtivo()
+                forn.getId(),
+                forn.getNome(),
+                forn.getTelefone(),
+                forn.getEmail(),
+                forn.isAtivo()
         );
+    }
+
+    public static List<FornecedorResponseDTO> refactor(List<Fornecedor> listForn) {
+        return listForn.stream()
+                .filter(Objects::nonNull)
+                .map(FornecedorResponseDTO::refactor)
+                .collect(Collectors.toList());
     }
 }

@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gestao.lafemme.api.entity.Usuario;
-import com.gestao.lafemme.api.enuns.RoleEnum;
 import com.gestao.lafemme.api.security.controller.DTOs.LoginRequestDTO;
 import com.gestao.lafemme.api.security.controller.DTOs.RegistroUsuarioRequestDTO;
 import com.gestao.lafemme.api.security.controller.DTOs.ResetPasswordDTO;
@@ -100,7 +99,7 @@ public class AuthenticationController {
         }
 
         String hashed = passwordEncoder.encode(senha);
-        boolean isCadastradado = registerBO.cadastrarUsuario(nome, email, hashed, RoleEnum.ROLE_ADMIN, 1L);
+        boolean isCadastradado = registerBO.cadastrarUsuario(nome, email, hashed, 1L);
         
         if (isCadastradado == false) {
         	return ResponseEntity.status(HttpStatus.CONFLICT)

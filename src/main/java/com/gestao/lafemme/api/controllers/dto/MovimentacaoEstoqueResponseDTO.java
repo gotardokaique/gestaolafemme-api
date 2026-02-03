@@ -1,6 +1,9 @@
 package com.gestao.lafemme.api.controllers.dto;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.gestao.lafemme.api.entity.Estoque;
 import com.gestao.lafemme.api.entity.MovimentacaoEstoque;
@@ -16,18 +19,23 @@ public record MovimentacaoEstoqueResponseDTO(
         Long produtoId,
         String produtoNome
 ) {
-    public static MovimentacaoEstoqueResponseDTO from(MovimentacaoEstoque mov) {
-        Estoque estoque = mov.getEstoque();
-        Produto produto = estoque != null ? estoque.getProduto() : null;
+    public static MovimentacaoEstoqueResponseDTO refactor(MovimentacaoEstoque mov) {
         return new MovimentacaoEstoqueResponseDTO(
                 mov.getId(),
                 mov.getDataMovimentacao(),
-                mov.getTipoMovimentacao() != null ? mov.getTipoMovimentacao().name() : null,
+                mov.getTipoMovimentacao().name(),
                 mov.getQuantidade(),
                 mov.getObservacao(),
-                estoque != null ? estoque.getId() : null,
-                produto != null ? produto.getId() : null,
-                produto != null ? produto.getNome() : null
+                mov.getEstoque().getId(),
+                mov.getEstoque().getProduto().getId(),
+                mov.getEstoque().getProduto().getNome()
         );
+    }
+
+    public static List<MovimentacaoEstoqueResponseDTO> refactor(List<MovimentacaoEstoque> listMov) {
+        return listMov.stream()
+                .filter(Objects::nonNull)
+                .map(MovimentacaoEstoqueResponseDTO::refactor)
+                .collect(Collectors.toList());
     }
 }

@@ -18,9 +18,9 @@ public class UsuarioServiceValidacao {
 	public Boolean validarEmailJaCadastrado (String email) {
         String jpql = 
                 "   select usu                   " +
-                "   FROM Usuarios usu             " +
+                "   FROM Usuario usu             " +
                 "   WHERE 1 = 1                  " +
-                "   AND usu.email ='" + email + "'";
+                "   AND usu.usu_email ='" + email + "'";
 		 
 	        List<?> lista = trans.select(jpql);
 	        

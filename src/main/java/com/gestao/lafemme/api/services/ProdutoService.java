@@ -1,6 +1,7 @@
 package com.gestao.lafemme.api.services;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.context.UserContext;
+import com.gestao.lafemme.api.controllers.dto.ProdutoRequestDTO;
+import com.gestao.lafemme.api.controllers.dto.ProdutoResponseDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.entity.CategoriaProduto;
@@ -29,28 +32,37 @@ public class ProdutoService {
     }
 
     @Transactional(readOnly = true)
-    public List<Produto> listarProdutos(Boolean ativos) {
-        var q = dao.select()
-                .from(Produto.class)
-                .join("categoriaProduto")
-                .join("estoque");
+    public List<ProdutoResponseDTO> listarProdutos(Boolean ativos) {
+    	List<Produto> listProd;
+    	
+    	try {
+    		listProd = dao.select()
+    				.from(Produto.class)
+    				.join("categoriaProduto")
+    				.join("estoque")
+    				.orderBy("nome", true)
+    				.list();
+    		
+    	} catch (NotFoundException not) {
+    		listProd = new ArrayList<Produto>();
+    	}
 
-        if (ativos != null) {
-            q.where("ativo", Condicao.EQUAL, ativos);
-        }
-
-        return q.orderBy("nome", true).list();
+        return ProdutoResponseDTO.refactor(listProd);
     }
 
     @Transactional(readOnly = true)
-    public Produto buscarPorId(Long id) {
+    public ProdutoResponseDTO buscarPorId(Long id) throws Exception {
+    	Produto prod;
+    	
         try {
-            return dao.select()
+        	prod = dao.select()
                     .from(Produto.class)
                     .join("categoriaProduto")
                     .join("estoque")
                     .id(id);
-        } catch (Exception e) {
+        	return ProdutoResponseDTO.refactor(prod);
+        	
+        } catch (NotFoundException e) {
             throw new NotFoundException("Produto não encontrado: " + id);
         }
     }
@@ -58,25 +70,25 @@ public class ProdutoService {
     // ===================== CRIAR PRODUTO =====================
 
     @Transactional
-    public Produto criarProduto(String nome, String codigo, String descricao, Long categoriaId, int estoqueMinimo) throws Exception {
+    public Produto criarProduto(ProdutoRequestDTO dto) throws Exception {
 
-        validarTexto(nome, "nome");
-        validarTexto(codigo, "codigo");
+        validarTexto(dto.nome(), "nome");
+        validarTexto(dto.codigo(), "codigo");
 
-        if (categoriaId == null) {
+        if (dto.categoriaId() == null) {
             throw new BusinessException("Campo obrigatório: categoriaId");
         }
 
         CategoriaProduto categoria = dao
                 .select()
                 .from(CategoriaProduto.class)
-                .id(categoriaId);
+                .id(dto.categoriaId());
 
         try {
             dao
                 .select()
                 .from(Produto.class)
-                .where("codigo", Condicao.EQUAL, codigo.trim())
+                .where("codigo", Condicao.EQUAL, dto.codigo().trim())
                 .one();
 
             throw new BusinessException("Já existe produto com esse código.");
@@ -86,9 +98,9 @@ public class ProdutoService {
         }
 
         Produto produto = new Produto();
-        produto.setNome(nome.trim());
-        produto.setCodigo(codigo.trim());
-        produto.setDescricao(descricao);
+        produto.setNome(dto.nome().trim());
+        produto.setCodigo(dto.codigo().trim());
+        produto.setDescricao(dto.descricao());
         produto.setValorCusto(BigDecimal.ZERO);
         produto.setValorVenda(BigDecimal.ZERO);
         produto.setCategoriaProduto(categoria);
@@ -99,8 +111,8 @@ public class ProdutoService {
         // cria estoque 1–1
         Estoque estoque = new Estoque();
         estoque.setProduto(salvo);
-        estoque.setQuantidadeAtual(0);
-        estoque.setEstoqueMinimo(Math.max(estoqueMinimo, 0));
+        estoque.setQuantidadeAtual(dto.quantidadeId());
+        estoque.setEstoqueMinimo(Math.max(dto.estoqueMinimo(), 0));
 
         dao.insert(estoque);
 
@@ -110,37 +122,20 @@ public class ProdutoService {
     // ===================== EDITAR PRODUTO =====================
 
     @Transactional
-    public Produto editarProduto(
-            Long produtoId,
-            String nome,
-            String codigo,
-            String descricao,
-            Long categoriaId,
-            Boolean ativo
-    ) throws Exception {
-        if (produtoId == null) {
-            throw new BusinessException("Campo obrigatório: produtoId");
+    public Produto editarProduto(Integer produtoId, ProdutoRequestDTO dto) throws Exception {
+        
+        Produto produto = carregarProduto(produtoId);
+
+        if (dto.nome() != null) {
+            validarTexto(dto.nome(), "nome");
+            produto.setNome(dto.nome().trim());
         }
 
-        Produto produto = dao
-                .select()
-                .from(Produto.class)
-                .id(produtoId);
+        if (dto.codigo() != null) {
+            validarTexto(dto.codigo(), "codigo");
+            String novoCodigo = dto.codigo().trim();
 
-        if (produto == null) {
-            throw new NotFoundException("Produto não encontrado: " + produtoId);
-        }
-
-        if (nome != null) {
-            validarTexto(nome, "nome");
-            produto.setNome(nome.trim());
-        }
-
-        if (codigo != null) {
-            validarTexto(codigo, "codigo");
-            String novoCodigo = codigo.trim();
-
-            if (!novoCodigo.equals(produto.getCodigo())) {
+            if (novoCodigo.equals(produto.getCodigo()) == false) {
                 try {
                     Produto outro = dao
                             .select()
@@ -148,7 +143,7 @@ public class ProdutoService {
                             .where("codigo", Condicao.EQUAL, novoCodigo)
                             .one();
 
-                    if (outro != null && !outro.getId().equals(produtoId)) {
+                    if (outro != null ) {
                         throw new BusinessException("Já existe produto com esse código.");
                     }
                 } catch (NotFoundException not) {
@@ -158,20 +153,20 @@ public class ProdutoService {
             }
         }
 
-        if (descricao != null) {
-            produto.setDescricao(descricao);
-        }
+        produto.setDescricao(dto.descricao());
+        
 
-        if (categoriaId != null) {
+        if (dto.categoriaId() != null) {
             CategoriaProduto categoria = dao
                     .select()
                     .from(CategoriaProduto.class)
-                    .id(categoriaId);
+                    .id(dto.categoriaId());
+            
             produto.setCategoriaProduto(categoria);
         }
 
-        if (ativo != null) {
-            produto.setAtivo(ativo);
+        if (dto.ativo() != null) {
+            produto.setAtivo(dto.ativo());
         }
 
         return dao.update(produto);
@@ -180,53 +175,23 @@ public class ProdutoService {
     // ===================== APAGAR (DESATIVAR) PRODUTO =====================
 
     @Transactional
-    public void desativarProduto(Long produtoId, String motivo) throws Exception {
-        Produto produto = dao
-                .select()
-                .from(Produto.class)
-                .id(produtoId);
+    public void ativarInativarProduto(Integer produtoId, String motivo) throws Exception {
+    	
+        Produto produto = carregarProduto(produtoId);
 
-        if (produto == null) {
-            throw new NotFoundException("Produto não encontrado: " + produtoId);
-        }
 
         if (produto.isAtivo() == false) {
-            return; // idempotente
+        	produto.setAtivo(true);
+        } else {
+        	produto.setAtivo(false);
         }
 
-        produto.setAtivo(false);
         dao.update(produto);
 
         // auditoria opcional: registra AJUSTE 0 só pra deixar rastro
         registrarAuditoria(produtoId, motivo != null ? motivo : "Produto desativado.");
     }
 
-    // ===================== REATIVAR PRODUTO =====================
-
-    @Transactional
-    public void ativarProduto(Long produtoId, String motivo) throws Exception {
-        Produto produto = dao
-                .select()
-                .from(Produto.class)
-                .id(produtoId);
-
-        if (produto == null) {
-            throw new NotFoundException("Produto não encontrado: " + produtoId);
-        }
-
-        if (produto.isAtivo()) {
-            return;
-        }
-
-        produto.setAtivo(true);
-        dao.update(produto);
-
-        registrarAuditoria(produtoId, motivo != null ? motivo : "Produto reativado.");
-    }
-
-    // ===================== DELETE FÍSICO (SÓ SE NUNCA FOI USADO) =====================
-    // Use apenas se você realmente precisar remover do banco.
-    // Se já existir movimentação/compra/venda, bloqueia.
 
     @Transactional
     public void excluirProdutoFisico(Long produtoId) throws Exception {
@@ -244,7 +209,8 @@ public class ProdutoService {
         try {
             dao.select()
                .from(MovimentacaoEstoque.class)
-               .where("produto.id", Condicao.EQUAL, produtoId)
+               .join("estoque")
+               .where("estoque.produto.id", Condicao.EQUAL, produtoId)
                .one();
 
             throw new BusinessException("Não é permitido excluir produto com movimentações registradas.");
@@ -312,6 +278,7 @@ public class ProdutoService {
         mov.setQuantidade(Math.abs(novaQuantidade - quantidadeAnterior));
         mov.setObservacao(observacao);
         mov.setEstoque(estoque);
+        mov.setProduto(produto);
 
         Usuario usuarioRef = new Usuario();
         usuarioRef.setId(UserContext.getIdUsuario());
@@ -322,7 +289,7 @@ public class ProdutoService {
 
     // ===================== AUDITORIA HELPERS =====================
 
-    private void registrarAuditoria(Long produtoId, String observacao) {
+    private void registrarAuditoria(Integer produtoId, String observacao) {
         try {
             Estoque estoque = dao
                     .select()
@@ -354,5 +321,15 @@ public class ProdutoService {
         if (valor == null || valor.trim().isEmpty()) {
             throw new BusinessException("Campo obrigatório: " + campo);
         }
+    }
+    
+    
+    private Produto carregarProduto(Integer id) throws Exception {
+    	   Produto produto = dao
+                   .select()
+                   .from(Produto.class)
+                   .id(id);
+    	   
+    	   return produto;
     }
 }

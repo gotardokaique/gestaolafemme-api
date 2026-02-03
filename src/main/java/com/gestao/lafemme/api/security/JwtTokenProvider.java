@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.Map;
 
 @Component
 public class JwtTokenProvider {
@@ -36,25 +37,64 @@ public class JwtTokenProvider {
     }
 
     public String generateTokenFromUsername(String username) {
+        return generateToken(username, null);
+    }
+
+    public String generateToken(String username, Map<String, Object> claims) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
-        return Jwts.builder()
+        JwtBuilder builder = Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(now)
-                .setExpiration(expiryDate)
+                .setExpiration(expiryDate);
+
+        if (claims != null && !claims.isEmpty()) {
+            builder.addClaims(claims);
+        }
+
+        return builder
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
 
     public String getUsernameFromJWT(String token) {
-        Claims claims = Jwts.parserBuilder()
+        Claims claims = parseClaims(token);
+        return claims.getSubject();
+    }
+
+    public Long getLongClaim(String token, String claimName) {
+        Claims claims = parseClaims(token);
+        Object value = claims.get(claimName);
+        if (value == null) return null;
+
+        if (value instanceof Number n) {
+            return n.longValue();
+        }
+
+        if (value instanceof String s) {
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    public String getStringClaim(String token, String claimName) {
+        Claims claims = parseClaims(token);
+        Object value = claims.get(claimName);
+        return value != null ? String.valueOf(value) : null;
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-
-        return claims.getSubject();
     }
 
     public boolean validateToken(String authToken) {

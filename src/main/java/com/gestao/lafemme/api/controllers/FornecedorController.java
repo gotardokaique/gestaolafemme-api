@@ -32,53 +32,44 @@ public class FornecedorController {
     // ===================== CRIAR =====================
 
     @PostMapping
-    public ResponseEntity<FornecedorResponseDTO> criar(@RequestBody FornecedorRequestDTO dto) {
-        Fornecedor f = fornecedorService.criar(dto.nome(), dto.telefone(), dto.email());
-        return ResponseEntity.status(HttpStatus.CREATED).body(FornecedorResponseDTO.from(f));
+    public ResponseEntity<String> criarFornecedor(@RequestBody FornecedorRequestDTO dto) {
+        fornecedorService.criarFornecedor(dto);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body("Fornecedor criado com sucesso!");
     }
 
     // ===================== LISTAR =====================
 
     @GetMapping
-    public ResponseEntity<List<FornecedorResponseDTO>> listar(
-            @RequestParam(name = "ativos", required = false, defaultValue = "true") boolean ativos
-    ) {
-        List<Fornecedor> lista = fornecedorService.listarTodos();
+    public ResponseEntity<List<FornecedorResponseDTO>> listar() {
+      
 
-        return ResponseEntity.ok(lista.stream().map(FornecedorResponseDTO::from).toList());
+        return ResponseEntity.ok(fornecedorService.listarTodos());
     }
 
     // ===================== BUSCAR POR ID =====================
 
     @GetMapping("/{id}")
-    public ResponseEntity<FornecedorResponseDTO> buscarPorId(@PathVariable Long id) {
-        Fornecedor f = fornecedorService.buscarPorId(id);
-        return ResponseEntity.ok(FornecedorResponseDTO.from(f));
+    public ResponseEntity<FornecedorResponseDTO> buscarPorId(@PathVariable Integer id) {
+        Fornecedor fornecedor = fornecedorService.buscarPorId(id);
+        
+        return ResponseEntity.ok(FornecedorResponseDTO.refactor(fornecedor));
     }
 
     // ===================== ATUALIZAR =====================
 
     @PutMapping("/{id}")
-    public ResponseEntity<FornecedorResponseDTO> atualizar(
-            @PathVariable Long id,
-            @RequestBody FornecedorRequestDTO dto
-    ) {
-        Fornecedor f = fornecedorService.atualizar(id, dto.nome(), dto.telefone(), dto.email(), dto.ativo());
-        return ResponseEntity.ok(FornecedorResponseDTO.from(f));
+    public ResponseEntity<String> atualizar(@PathVariable Integer id, @RequestBody FornecedorRequestDTO dto) {
+        fornecedorService.atualizar(id, dto);
+        return ResponseEntity.ok("Fornecedor atualizado com sucesso!");
     }
 
     // ===================== ATIVAR / DESATIVAR =====================
 
-    @PatchMapping("/{id}/desativar")
-    public ResponseEntity<Void> desativar(@PathVariable Long id) {
+    @PatchMapping("/{id}/ativar-inativar")
+    public ResponseEntity<String> desativar(@PathVariable Integer id) {
         fornecedorService.ativarDesativar(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Fornecedor ativado/inativado com sucesso!");
     }
 
-    @PatchMapping("/{id}/ativar")
-    public ResponseEntity<Void> ativar(@PathVariable Long id) {
-        // Reaproveita atualizar com ativo=true, sem mexer no resto
-        fornecedorService.atualizar(id, null, null, null, true);
-        return ResponseEntity.noContent().build();
-    }
 }

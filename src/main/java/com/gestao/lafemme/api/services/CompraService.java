@@ -15,11 +15,12 @@ import com.gestao.lafemme.api.entity.Estoque;
 import com.gestao.lafemme.api.entity.Fornecedor;
 import com.gestao.lafemme.api.entity.LancamentoFinanceiro;
 import com.gestao.lafemme.api.entity.MovimentacaoEstoque;
+import com.gestao.lafemme.api.entity.Produto;
 import com.gestao.lafemme.api.entity.TipoLancamentoFinanceiro;
 import com.gestao.lafemme.api.entity.TipoMovimentacaoEstoque;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
-import com.gestao.lafemme.api.services.exceptions.ResourceNotFoundException;
+import com.gestao.lafemme.api.utils.MathUtils;
 
 @Service
 public class CompraService {
@@ -30,33 +31,16 @@ public class CompraService {
         this.dao = dao;
     }
 
-    // ===================== CRIAR COMPRA (ATÔMICA) =====================
-
-    /**
-     * Cria compra + gera lançamento financeiro (SAÍDA) + movimenta estoque (ENTRADA).
-     * Tudo no mesmo @Transactional.
-     *
-     * Observação: este método aplica a MESMA quantidade para todos os produtoIds,
-     * exatamente como você desenhou hoje.
-     * @throws Exception 
-     */
-    @Transactional
-    public void criarCompra(
-            Long fornecedorId,
-            BigDecimal valorTotal,
-            String formaPagamento,
-            Integer quantidade,
-            Integer[] produtoIds,
-            String observacao
-    ) throws Exception {
+	@Transactional
+	public void criarCompra(Long fornecedorId, String formaPagamento, Integer quantidade,
+			Integer produtoId, String observacao) throws Exception {
 
         if (fornecedorId == null) throw new BusinessException("Fornecedor é obrigatório.");
-        if (valorTotal == null || valorTotal.signum() <= 0) throw new BusinessException("Valor total da compra deve ser maior que zero.");
         if (formaPagamento == null || formaPagamento.isBlank()) throw new BusinessException("Forma de pagamento é obrigatória.");
         if (quantidade == null || quantidade <= 0) throw new BusinessException("Quantidade deve ser maior que zero.");
-        if (produtoIds == null || produtoIds.length == 0) throw new BusinessException("produtoIds é obrigatório.");
 
         Fornecedor fornecedor = buscarFornecedor(fornecedorId);
+        BigDecimal valorTotal = calcValorTotal(produtoId, quantidade);
 
         Compra compra = new Compra();
         compra.setFornecedor(fornecedor);
@@ -66,14 +50,14 @@ public class CompraService {
         compra.setUsuario(UserContext.getUsuarioAutenticado());
 
         // se existir no seu model:
-        // compra.setObservacao(observacao);
+//         compra.setObservacao(observacao);
         // compra.setAtivo(true);
 
         dao.insert(compra);
 
         gerarLancamentoFinanceiro(compra);
 
-        adicionarMovimentacaoEntrada(compra, produtoIds, quantidade, observacao);
+        adicionarMovimentacaoEntrada(compra, produtoId, quantidade, observacao);
     }
 
     // ===================== EDITAR COMPRA =====================
@@ -189,32 +173,27 @@ public class CompraService {
 
     // ===================== MOVIMENTAÇÃO DE ESTOQUE (ENTRADA) =====================
 
-    private void adicionarMovimentacaoEntrada(
-            Compra compra,
-            Integer[] produtoIds,
-            int quantidade,
-            String observacao
-    ) throws Exception {
+	private void adicionarMovimentacaoEntrada(Compra compra, Integer produtoId, int quantidade, String observacao)
+			throws Exception {
 
-        for (Integer produtoId : produtoIds) {
-            if (produtoId == null) throw new BusinessException("produtoId inválido.");
+    	if (produtoId == null) throw new BusinessException("Produto inválido.");
 
-            Estoque estoque = buscarEstoquePorProduto(produtoId);
+    	Estoque estoque = buscarEstoquePorProduto(produtoId);
 
-            estoque.setQuantidadeAtual(estoque.getQuantidadeAtual() + quantidade);
-            dao.update(estoque);
+    	estoque.setQuantidadeAtual(estoque.getQuantidadeAtual() + quantidade);
+    	dao.update(estoque);
 
-            MovimentacaoEstoque mov = new MovimentacaoEstoque();
-            mov.setDataMovimentacao(new Date());
-            mov.setTipoMovimentacao(TipoMovimentacaoEstoque.ENTRADA);
-            mov.setQuantidade(quantidade);
-            mov.setObservacao(observacao);
-            mov.setEstoque(estoque);
-            mov.setCompra(compra);
-            mov.setUsuario(UserContext.getUsuarioAutenticado());
+    	MovimentacaoEstoque mov = new MovimentacaoEstoque();
+    	mov.setDataMovimentacao(new Date());
+    	mov.setTipoMovimentacao(TipoMovimentacaoEstoque.ENTRADA);
+    	mov.setQuantidade(quantidade);
+    	mov.setObservacao(observacao);
+    	mov.setEstoque(estoque);
+    	mov.setCompra(compra);
+    	mov.setUsuario(UserContext.getUsuarioAutenticado());
 
-            dao.insert(mov);
-        }
+    	dao.insert(mov);
+        
     }
 
     // ===================== CONSULTAS =====================
@@ -274,5 +253,22 @@ public class CompraService {
             throw new NotFoundException("Estoque não encontrado para o produto: " + produtoId);
         }
         return estoque;
+    }
+    
+    private BigDecimal calcValorTotal (Integer produtoId, Integer qtd) {
+    	Produto produto;
+    	try {
+    		produto = dao.select()
+    				.from(Produto.class)
+    				.id(produtoId);
+    		
+    	} catch (NotFoundException n) {
+    		throw new BusinessException("Produto invalido.");
+    	}
+    	
+    	BigDecimal valorTotal = MathUtils.multiply(produto.getValorCusto(), qtd);
+    	
+    	return MathUtils.round(valorTotal, 2);
+    	
     }
 }

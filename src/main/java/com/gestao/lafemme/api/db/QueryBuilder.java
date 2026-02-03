@@ -535,37 +535,43 @@ public class QueryBuilder {
         return build();
     }
     
-    public <T> T id(Number id) throws Exception {
+    @Transactional(readOnly = true)
+    public <T> T id(Number id) {
         if (id == null) {
             throw new IllegalArgumentException("id não pode ser nulo");
         }
 
         if (entityClass == null) {
-            throw new IllegalStateException("Para usar id(), chame from(AlgumaEntidade.class) antes.");
+            throw new IllegalStateException(
+                "Para usar id(), chame from(AlgumaEntidade.class) antes."
+            );
         }
 
         if (projection) {
-            throw new IllegalStateException("id() não deve ser usado com select(...) de campos específicos.");
+            throw new IllegalStateException(
+                "id() não deve ser usado com select(...) de campos específicos."
+            );
         }
 
         @SuppressWarnings("unchecked")
         Class<T> clazz = (Class<T>) entityClass;
 
-        // Se seu PK for Long (o mais comum), garante compatibilidade.
-        // Se seu PK for outro tipo, ajuste aqui.
         Object pk = (id instanceof Long) ? id : Long.valueOf(id.longValue());
 
         T entity = entityManager.find(clazz, pk);
 
         if (entity == null) {
             String entidade = entityClass.getSimpleName();
-            // LOG LIMPO: só a mensagem (sem stacktrace aqui)
+
             log.warn("{} não encontrada para o id {}", entidade, id);
 
-            // Exception “seca” (sem cause) com a mensagem exata que você quer
-            throw new Exception(entidade + " não encontrada para o id " + id);
+            // EXATAMENTE como no one()
+            throw new EntityNotFoundException(
+                entidade + " não encontrada para o id " + id
+            );
         }
 
         return entity;
     }
+
 }

@@ -6,51 +6,66 @@ import java.util.Date;
 import java.util.Objects;
 
 @Entity
-@Table(name = "lancamentos_financeiros")
+@Table(name = "lancamento_financeiro")
 public class LancamentoFinanceiro {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "lanf_id")
     private Long id;
 
+    // data do lançamento (regra de negócio)
     @Temporal(TemporalType.DATE)
-    @Column(name = "data_lancamento", nullable = false)
+    @Column(name = "lanf_data_lancamento", nullable = false)
     private Date dataLancamento;
 
+    // auditoria / cadastro
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "lanf_data_cadastro", nullable = false)
+    private Date dataCadastro;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "lanf_tipo", nullable = false, length = 20)
     private TipoLancamentoFinanceiro tipo;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(name = "lanf_valor", nullable = false, precision = 19, scale = 2)
     private BigDecimal valor;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "lanf_descricao", nullable = false, length = 255)
     private String descricao;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "compra_id")
+    @JoinColumn(name = "comp_id")
     private Compra compra;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "venda_id")
+    @JoinColumn(name = "vend_id")
     private Venda venda;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @JoinColumn(name = "usu_id", nullable = false)
     private Usuario usuario;
+    
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "uni_id", nullable = false)
+    private Unidade unidade;
 
-    public LancamentoFinanceiro() {
-    }
+
+    public LancamentoFinanceiro() {}
 
     @PrePersist
     protected void onCreate() {
-        if (this.dataLancamento == null) {
-            this.dataLancamento = new Date();
-        }
+        if (this.dataLancamento == null) this.dataLancamento = new Date();
+        if (this.dataCadastro == null) this.dataCadastro = new Date();
     }
 
     public Long getId() {
         return id;
+    }
+
+    // evite setId em produção; mantenho se precisar em testes
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public Date getDataLancamento() {
@@ -59,6 +74,14 @@ public class LancamentoFinanceiro {
 
     public void setDataLancamento(Date dataLancamento) {
         this.dataLancamento = dataLancamento;
+    }
+
+    public Date getDataCadastro() {
+        return dataCadastro;
+    }
+
+    public void setDataCadastro(Date dataCadastro) {
+        this.dataCadastro = dataCadastro;
     }
 
     public TipoLancamentoFinanceiro getTipo() {

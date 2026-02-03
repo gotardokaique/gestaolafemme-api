@@ -42,10 +42,10 @@ public class SecurityConfig {
         this.daoController = daoController;
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder();
+//    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,

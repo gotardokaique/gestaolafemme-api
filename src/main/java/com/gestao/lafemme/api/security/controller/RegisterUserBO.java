@@ -15,11 +15,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
+import com.gestao.lafemme.api.db.Condicao;
+import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.db.TransactionDB;
 import com.gestao.lafemme.api.entity.PerfilUsuario;
+import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
-import com.gestao.lafemme.api.enuns.RoleEnum;
+import com.gestao.lafemme.api.entity.UsuarioUnidade;
 import com.gestao.lafemme.api.security.controller.DTOs.LoginResponseDTO;
+import com.gestao.lafemme.api.services.exceptions.BusinessException;
+import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 
 @Component
 public class RegisterUserBO {
@@ -59,10 +64,12 @@ public class RegisterUserBO {
 
     private final UsuarioServiceValidacao usuarioServiceValidacao;
     private final TransactionDB trans;
+    private final DAOController dao;
 
-	public RegisterUserBO(UsuarioServiceValidacao usuarioServiceValidacao, TransactionDB trans) {
+	public RegisterUserBO(UsuarioServiceValidacao usuarioServiceValidacao, TransactionDB trans, DAOController dao) {
 		this.usuarioServiceValidacao = usuarioServiceValidacao;
 		this.trans = trans;
+		this.dao = dao;
 	}
 
 	public Boolean validarSenhaForte(String senha) {
@@ -91,12 +98,12 @@ public class RegisterUserBO {
 		return usuarioServiceValidacao.validarEmailJaCadastrado(email);
 	}
 
-    public Boolean cadastrarUsuario(String nome, String email, String hashed, RoleEnum role, Long perfilUsuarioId) {
+    public Boolean cadastrarUsuario(String nome, String email, String hashed, Long perfilUsuarioId) {
         boolean isUserCadastrado;
 
         PerfilUsuario perfil = trans.selectById(PerfilUsuario.class, perfilUsuarioId);
         
-        var usuario = new Usuario(nome, email, hashed, role, perfil);
+        var usuario = new Usuario(nome, email, hashed, perfil);
 
         try {
             trans.insert(usuario);
@@ -129,6 +136,9 @@ public class RegisterUserBO {
 	        var authToken = new UsernamePasswordAuthenticationToken(email, senha);
 	        Authentication auth = authenticationManager.authenticate(authToken);
 	        Usuario user = (Usuario) auth.getPrincipal();
+	        
+	        Unidade unidadeAtiva = resolverUnidadeAtiva(user.getId());
+	        user.setUnidadeAtiva(unidadeAtiva);
 
 	        tentativa.tentativas = 0;
 	        tentativa.bloqueadoAte = null;
@@ -137,6 +147,7 @@ public class RegisterUserBO {
             sessionService.storeToken(user.getId(), jwt);
 
 	        logger.info("Login bem-sucedido para {}", email);
+	        
 	        return ResponseEntity.ok(new LoginResponseDTO(jwt));
 
 	    } catch (BadCredentialsException | UsernameNotFoundException e) {
@@ -158,4 +169,27 @@ public class RegisterUserBO {
 	                .body(Map.of("message", "Erro interno ao tentar autenticar" + e.getMessage()));
 	    }
 	}
+	
+	private Unidade resolverUnidadeAtiva(Long userId) {
+	    try {
+	        UsuarioUnidade uu = dao.select()
+	                .from(UsuarioUnidade.class)
+	                .join("usuario")
+	                .join("unidade")
+	                .where("usuario.id", Condicao.EQUAL, userId)
+	                .one();
+
+	        if (uu == null || uu.getUnidade() == null) {
+	            throw new NotFoundException("Usuário não possui unidade vinculada.");
+	        }
+
+	        return uu.getUnidade();
+
+	    } catch (NotFoundException e) {
+	        throw e;
+	    } catch (Exception e) {
+	        throw new BusinessException("Erro ao resolver unidade do usuário.");
+	    }
+	}
+
 }

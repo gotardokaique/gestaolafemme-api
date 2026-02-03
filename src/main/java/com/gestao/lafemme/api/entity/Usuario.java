@@ -2,18 +2,17 @@ package com.gestao.lafemme.api.entity;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import com.gestao.lafemme.api.enuns.RoleEnum;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -25,89 +24,47 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import jakarta.persistence.Transient;
 
 @Entity
-@Table(name = "usuarios")
+@Table(name = "usuario")
 public class Usuario implements UserDetails, Serializable {
-	
-    public Usuario(String nome, String email, String senha, RoleEnum role) {
+
+    private static final long serialVersionUID = 1L;
+
+    public Usuario() {}
+
+    public Usuario(String nome, String email, String senha) {
         this.nome = nome;
         this.email = email;
         this.senha = senha;
-        this.role = role;
+        this.ativo = true;
     }
-    
-    public Usuario(String nome, String email, String senha, RoleEnum role, PerfilUsuario perfil) {
-        this.nome = nome;
-        this.email = email;
-        this.senha = senha;
-        this.role = role;
+
+    public Usuario(String nome, String email, String senha, PerfilUsuario perfil) {
+        this(nome, email, senha);
         this.perfilUsuario = perfil;
-    }
-
-
-    @Override
-    public String getUsername() {
-        return email;
-    }
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "usu_role", nullable = false)
-    private RoleEnum role;
-  
-
-    public void setId(Long id) {
-		this.id = id;
-	}
-
-	@Override
-    public String getPassword() {
-        return senha;
-    }
-
-    @Override
-    public java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> getAuthorities() {
-        return java.util.Collections.emptyList();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return ativo;
     }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "usu_id")
     private Long id;
 
-    @Column(nullable = false, length = 120)
+    @Column(name = "usu_nome", nullable = false, length = 120)
     private String nome;
 
-    @Column(nullable = false, unique = true, length = 180)
+    @Column(name = "usu_email", nullable = false, unique = true, length = 180)
     private String email;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "usu_senha", nullable = false, length = 255)
     private String senha;
 
-    @Column(nullable = false)
+    @Column(name = "usu_ativo", nullable = false)
     private boolean ativo;
 
-    @Temporal(TemporalType.DATE)
-    @Column(name = "data_criacao", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "usu_data_criacao", nullable = false)
     private Date dataCriacao;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -123,91 +80,64 @@ public class Usuario implements UserDetails, Serializable {
     @OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY)
     private List<MovimentacaoEstoque> movimentacoes = new ArrayList<>();
 
-    public Usuario() {
-    }
+    @OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY)
+    private List<UsuarioUnidade> unidades = new ArrayList<>();
+
+    @Transient
+    private Unidade unidadeAtiva;
 
     @PrePersist
     protected void onCreate() {
-        if (this.dataCriacao == null) {
-            this.dataCriacao = new Date();
-        }
+        if (this.dataCriacao == null) this.dataCriacao = new Date();
+        if (!this.ativo) this.ativo = true;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getEmail() {
+    @Override
+    public String getUsername() {
         return email;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getSenha() {
+    @Override
+    public String getPassword() {
         return senha;
     }
 
-    public void setSenha(String senha) {
-        this.senha = senha;
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.emptyList();
     }
 
-    public boolean isAtivo() {
-        return ativo;
-    }
+    @Override public boolean isAccountNonExpired() { return true; }
+    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isCredentialsNonExpired() { return true; }
+    @Override public boolean isEnabled() { return ativo; }
 
-    public void setAtivo(boolean ativo) {
-        this.ativo = ativo;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Date getDataCriacao() {
-        return dataCriacao;
-    }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    public void setDataCriacao(Date dataCriacao) {
-        this.dataCriacao = dataCriacao;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public PerfilUsuario getPerfilUsuario() {
-        return perfilUsuario;
-    }
+    public String getSenha() { return senha; }
+    public void setSenha(String senha) { this.senha = senha; }
 
-    public void setPerfilUsuario(PerfilUsuario perfilUsuario) {
-        this.perfilUsuario = perfilUsuario;
-    }
+    public boolean isAtivo() { return ativo; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
 
-    public List<Compra> getCompras() {
-        return compras;
-    }
+    public Date getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(Date dataCriacao) { this.dataCriacao = dataCriacao; }
 
-    public void setCompras(List<Compra> compras) {
-        this.compras = compras;
-    }
+    public PerfilUsuario getPerfilUsuario() { return perfilUsuario; }
+    public void setPerfilUsuario(PerfilUsuario perfilUsuario) { this.perfilUsuario = perfilUsuario; }
 
-    public List<Venda> getVendas() {
-        return vendas;
-    }
+    public List<UsuarioUnidade> getUnidades() { return unidades; }
+    public void setUnidades(List<UsuarioUnidade> unidades) { this.unidades = unidades; }
 
-    public void setVendas(List<Venda> vendas) {
-        this.vendas = vendas;
-    }
-
-    public List<MovimentacaoEstoque> getMovimentacoes() {
-        return movimentacoes;
-    }
-
-    public void setMovimentacoes(List<MovimentacaoEstoque> movimentacoes) {
-        this.movimentacoes = movimentacoes;
-    }
+    public Unidade getUnidadeAtiva() { return unidadeAtiva; }
+    public void setUnidadeAtiva(Unidade unidadeAtiva) { this.unidadeAtiva = unidadeAtiva; }
 
     @Override
     public boolean equals(Object o) {
