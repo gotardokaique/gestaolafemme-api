@@ -34,9 +34,19 @@ public class CategoriaProduto {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "uni_id", nullable = false)
     private Unidade unidade;
+    
+    
 
 
-    public CategoriaProduto() {}
+    public Unidade getUnidade() {
+		return unidade;
+	}
+
+	public void setUnidade(Unidade unidade) {
+		this.unidade = unidade;
+	}
+
+	public CategoriaProduto() {}
 
     @PrePersist
     protected void onCreate() {

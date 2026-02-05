@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.context.UserContext;
+import com.gestao.lafemme.api.controllers.dto.CompraRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CompraResponseDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
@@ -33,41 +34,35 @@ public class CompraService {
         this.dao = dao;
     }
 
-	@Transactional
-	public void criarCompra(Long fornecedorId, String formaPagamento, Integer quantidade,
-			Integer produtoId, String observacao) throws Exception {
+    @Transactional
+    public void criarCompra(CompraRequestDTO dto) throws Exception {
 
-        if (fornecedorId == null) throw new BusinessException("Fornecedor é obrigatório.");
-        if (formaPagamento == null || formaPagamento.isBlank()) throw new BusinessException("Forma de pagamento é obrigatória.");
-        if (quantidade == null || quantidade <= 0) throw new BusinessException("Quantidade deve ser maior que zero.");
+        if (dto.fornecedorId() == null) throw new BusinessException("Fornecedor é obrigatório.");
+        if (dto.formaPagamento() == null || dto.formaPagamento().isBlank()) throw new BusinessException("Forma de pagamento é obrigatória.");
+        if (dto.quantidade() == null || dto.quantidade() <= 0) throw new BusinessException("Quantidade deve ser maior que zero.");
+        if (dto.produtoIds() == null || dto.produtoIds().length == 0) throw new BusinessException("Produto é obrigatório.");
 
-        Fornecedor fornecedor = buscarFornecedor(fornecedorId);
-        BigDecimal valorTotal = calcValorTotal(produtoId, quantidade);
+        Long produtoId = Long.valueOf(dto.produtoIds()[0]);
+        Fornecedor fornecedor = buscarFornecedor(dto.fornecedorId());
+        BigDecimal valorTotal = calcValorTotal(produtoId, dto.quantidade());
 
         Compra compra = new Compra();
         compra.setFornecedor(fornecedor);
         compra.setValorTotal(valorTotal);
-        compra.setFormaPagamento(formaPagamento.trim());
-        compra.setDataCompra(new Date());
-        compra.setUsuario(UserContext.getUsuarioAutenticado());
-
-        // se existir no seu model:
-//         compra.setObservacao(observacao);
-        // compra.setAtivo(true);
+        compra.setFormaPagamento(dto.formaPagamento().trim());
+        compra.setDataCompra(dto.dataCompra() != null ? dto.dataCompra() : new Date());
+        compra.setUsuario(UserContext.getUsuario());
+        compra.setUnidade(UserContext.getUnidade());
 
         dao.insert(compra);
 
         gerarLancamentoFinanceiro(compra);
 
-        adicionarMovimentacaoEntrada(compra, produtoId, quantidade, observacao);
+        adicionarMovimentacaoEntrada(compra, produtoId, dto.quantidade(), dto.observacao());
     }
 
     // ===================== EDITAR COMPRA =====================
 
-    /**
-     * Edita dados da compra (não mexe em estoque automaticamente).
-     * Se você quiser editar itens/estoque, isso é OUTRA operação de domínio (estorno/ajuste).
-     */
     @Transactional
     public void editarCompra(
             Long compraId,
@@ -96,34 +91,10 @@ public class CompraService {
         }
 
         dao.update(compra);
-
-        // Se você editar valorTotal/formaPagamento, ideal é atualizar o lançamento também.
-        // Não vou inventar seu relacionamento aqui; se existir 1–1, eu ajusto.
     }
-
-    // ===================== ATIVAR / INATIVAR (MESMO MÉTODO) =====================
-
-//    @Transactional
-//    public void alterarStatusCompra(Long compraId, boolean ativo) {
-//
-//        Compra compra = buscarCompra(compraId);
-//
-//        // se Compra não tiver campo ativo, isso aqui não compila — aí você remove.
-//        if (Boolean.valueOf(ativo).equals(compra.getAtivo())) {
-//            return; // idempotente
-//        }
-//
-//        compra.setAtivo(ativo);
-//        dao.update(compra);
-//    }
 
     // ===================== EXCLUIR FÍSICO (TRAVADO) =====================
 
-    /**
-     * Exclui compra SOMENTE se não houver lançamento/movimentação vinculados.
-     * Caso exista, você deve inativar/estornar, nunca deletar.
-     * @throws Exception 
-     */
     @Transactional
     public void excluirCompraFisico(Long compraId) throws Exception {
 
@@ -168,53 +139,54 @@ public class CompraService {
         lanc.setValor(compra.getValorTotal());
         lanc.setDescricao("Compra - " + compra.getFormaPagamento());
         lanc.setDataLancamento(new Date());
-        lanc.setUsuario(UserContext.getUsuarioAutenticado());
+        lanc.setUsuario(UserContext.getUsuario());
+        lanc.setUnidade(UserContext.getUnidade());
 
         dao.insert(lanc);
     }
 
     // ===================== MOVIMENTAÇÃO DE ESTOQUE (ENTRADA) =====================
 
-	private void adicionarMovimentacaoEntrada(Compra compra, Integer produtoId, int quantidade, String observacao)
-			throws Exception {
+    private void adicionarMovimentacaoEntrada(Compra compra, Long produtoId, int quantidade, String observacao)
+            throws Exception {
 
-    	if (produtoId == null) throw new BusinessException("Produto inválido.");
+        if (produtoId == null) throw new BusinessException("Produto inválido.");
 
-    	Estoque estoque = buscarEstoquePorProduto(produtoId);
+        Estoque estoque = buscarEstoquePorProduto(produtoId);
 
-    	estoque.setQuantidadeAtual(estoque.getQuantidadeAtual() + quantidade);
-    	dao.update(estoque);
+        estoque.setQuantidadeAtual(estoque.getQuantidadeAtual() + quantidade);
+        dao.update(estoque);
 
-    	MovimentacaoEstoque mov = new MovimentacaoEstoque();
-    	mov.setDataMovimentacao(new Date());
-    	mov.setTipoMovimentacao(TipoMovimentacaoEstoque.ENTRADA);
-    	mov.setQuantidade(quantidade);
-    	mov.setObservacao(observacao);
-    	mov.setEstoque(estoque);
-    	mov.setCompra(compra);
-    	mov.setUsuario(UserContext.getUsuarioAutenticado());
+        MovimentacaoEstoque mov = new MovimentacaoEstoque();
+        mov.setDataMovimentacao(new Date());
+        mov.setTipoMovimentacao(TipoMovimentacaoEstoque.ENTRADA);
+        mov.setQuantidade(quantidade);
+        mov.setObservacao(observacao);
+        mov.setEstoque(estoque);
+        mov.setCompra(compra);
+        mov.setUsuario(UserContext.getUsuario());
+        mov.setUnidade(UserContext.getUnidade());
 
-    	dao.insert(mov);
-        
+        dao.insert(mov);
     }
 
     // ===================== CONSULTAS =====================
 
     @Transactional(readOnly = true)
     public List<CompraResponseDTO> listarCompras() {
-    	List<Compra> compList; 
-    	try {
-    		compList = dao.select()
+        List<Compra> compList; 
+        try {
+            compList = dao.select()
             .from(Compra.class)
             .join("fornecedor")
-            .join("usuario")
-            .where("usuario.id", Condicao.EQUAL, UserContext.getIdUsuario())
+            .join("unidade")
+            .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
             .orderBy("dataCompra", false)
             .list();
-		} catch (NotFoundException e) {
-			compList = new ArrayList<Compra>();
-		} 
-    	
+        } catch (NotFoundException e) {
+            compList = new ArrayList<Compra>();
+        } 
+        
         return CompraResponseDTO.refactor(compList);
     }
 
@@ -230,8 +202,8 @@ public class CompraService {
             return dao.select()
                     .from(Compra.class)
                     .join("fornecedor")
-                    .join("usuario")
-                    .where("usuario.id", Condicao.EQUAL, UserContext.getIdUsuario())
+                    .join("unidade")
+                    .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                     .id(id);
         } catch (Exception e) {
             throw new NotFoundException("Compra não encontrada: " + id);
@@ -242,42 +214,41 @@ public class CompraService {
         try {
             return dao.select()
                     .from(Fornecedor.class)
-                    .join("usuario")
-                    .where("usuario.id", Condicao.EQUAL, UserContext.getIdUsuario())
+                    .join("unidade")
+                    .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                     .id(fornecedorId);
         } catch (Exception e) {
-
             throw new NotFoundException("Fornecedor não encontrado: " + fornecedorId);
         }
     }
 
-    private Estoque buscarEstoquePorProduto(Integer produtoId) throws Exception {
-        Estoque estoque = dao.select()
-                .from(Estoque.class)
-                .join("produto")
-                .where("produto.id", Condicao.EQUAL, produtoId)
-                .one();
-
-        if (estoque == null) {
+    private Estoque buscarEstoquePorProduto(Long produtoId) throws Exception {
+        try {
+            return dao.select()
+                    .from(Estoque.class)
+                    .join("produto")
+                    .where("produto.id", Condicao.EQUAL, produtoId)
+                    .one();
+        } catch (NotFoundException e) {
             throw new NotFoundException("Estoque não encontrado para o produto: " + produtoId);
         }
-        return estoque;
     }
     
-    private BigDecimal calcValorTotal (Integer produtoId, Integer qtd) {
-    	Produto produto;
-    	try {
-    		produto = dao.select()
-    				.from(Produto.class)
-    				.id(produtoId);
-    		
-    	} catch (NotFoundException n) {
-    		throw new BusinessException("Produto invalido.");
-    	}
-    	
-    	BigDecimal valorTotal = MathUtils.multiply(produto.getValorCusto(), qtd);
-    	
-    	return MathUtils.round(valorTotal, 2);
-    	
+    private BigDecimal calcValorTotal (Long produtoId, Integer qtd) {
+        Produto produto;
+        try {
+            produto = dao.select()
+                    .from(Produto.class)
+                    .join("unidade")
+                    .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
+                    .id(produtoId);
+            
+        } catch (NotFoundException n) {
+            throw new BusinessException("Produto inválido.");
+        }
+        
+        BigDecimal valorTotal = MathUtils.multiply(produto.getValorCusto(), qtd);
+        return MathUtils.round(valorTotal, 2);
     }
 }
+

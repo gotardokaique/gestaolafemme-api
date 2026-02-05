@@ -55,9 +55,19 @@ public class MovimentacaoEstoque {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "uni_id", nullable = false)
     private Unidade unidade;
+    
+    
 
 
-    public MovimentacaoEstoque() {}
+    public Unidade getUnidade() {
+		return unidade;
+	}
+
+	public void setUnidade(Unidade unidade) {
+		this.unidade = unidade;
+	}
+
+	public MovimentacaoEstoque() {}
 
     @PrePersist
     protected void onCreate() {

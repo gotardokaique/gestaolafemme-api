@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.context.UserContext;
+import com.gestao.lafemme.api.controllers.dto.VendaRequestDTO;
+import com.gestao.lafemme.api.controllers.dto.VendaResponseDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.entity.Estoque;
@@ -29,64 +31,44 @@ public class VendaService {
         this.dao = dao;
     }
 
-    // ===================== CRIAR VENDA =====================
-
-    /**
-     * Cria a venda (financeira).
-     * As movimentações (itens) são adicionadas separadamente.
-     */
     @Transactional
-    public Venda criarVenda(
-    		BigDecimal valorTotal,
-    		String formaPagamento,
-    		String observacao
-    		) {
+    public void criarVenda(VendaRequestDTO dto) throws Exception {
 
-        if (valorTotal == null || valorTotal.signum() <= 0) {
-            throw new BusinessException("Valor total da venda deve ser maior que zero.");
-        }
+        if (dto.produtoId() == null) throw new BusinessException("Produto é obrigatório.");
+        if (dto.quantidade() == null || dto.quantidade() <= 0) throw new BusinessException("Quantidade deve ser maior que zero.");
+        if (dto.formaPagamento() == null || dto.formaPagamento().isBlank()) throw new BusinessException("Forma de pagamento é obrigatória.");
 
-        if (formaPagamento == null || formaPagamento.isBlank()) {
-            throw new BusinessException("Forma de pagamento é obrigatória.");
+        Produto produto = buscarProduto(dto.produtoId());
+        
+        // Se o valorTotal não vier do front, calculamos (opcional, dependendo da regra)
+        BigDecimal valorTotal = dto.valorTotal();
+        if (valorTotal == null || valorTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            valorTotal = produto.getValorVenda().multiply(new BigDecimal(dto.quantidade()));
         }
 
         Venda venda = new Venda();
-        venda.setDataVenda(new Date());
+        venda.setDataVenda(dto.dataVenda() != null ? dto.dataVenda() : new Date());
         venda.setValorTotal(valorTotal);
-        venda.setFormaPagamento(formaPagamento);
-//        venda.setObservacao(observacao);
-        venda.setUsuario(UserContext.getUsuarioAutenticado());
+        venda.setFormaPagamento(dto.formaPagamento().trim());
+        venda.setUsuario(UserContext.getUsuario());
+        venda.setUnidade(UserContext.getUnidade());
 
-        return dao.insert(venda);
+        dao.insert(venda);
+
+        gerarLancamentoFinanceiro(venda);
+
+        adicionarMovimentacaoSaida(venda, produto, dto.quantidade(), dto.observacao());
     }
 
-    // ===================== ITEM: SAÍDA DE ESTOQUE =====================
-
-    /**
-     * Adiciona uma movimentação (SAÍDA) vinculada a uma venda.
-     *
-     * Regras:
-     * - quantidade > 0
-     * - estoque não pode ficar negativo
-     * @throws Exception 
-     */
     @Transactional
-    private MovimentacaoEstoque adicionarMovimentacaoSaida(
-            Long vendaId,
-            Long produtoId,
+    private void adicionarMovimentacaoSaida(
+            Venda venda,
+            Produto produto,
             int quantidade,
             String observacao
     ) throws Exception {
 
-        if (vendaId == null) throw new BusinessException("vendaId é obrigatório.");
-        if (produtoId == null) throw new BusinessException("produtoId é obrigatório.");
-        if (quantidade <= 0) throw new BusinessException("Quantidade deve ser maior que zero.");
-
-        Venda venda = buscarVenda(vendaId);
-
-        Produto produto = buscarProduto(produtoId);
-
-        Estoque estoque = buscarEstoquePorProduto(produtoId);
+        Estoque estoque = buscarEstoquePorProduto(produto.getId());
 
         int atual = estoque.getQuantidadeAtual();
         int novo = atual - quantidade;
@@ -96,11 +78,9 @@ public class VendaService {
                     + ". Atual: " + atual + ", solicitado: " + quantidade);
         }
 
-        // atualiza estoque
         estoque.setQuantidadeAtual(novo);
         dao.update(estoque);
 
-        // cria movimentação
         MovimentacaoEstoque mov = new MovimentacaoEstoque();
         mov.setDataMovimentacao(new Date());
         mov.setTipoMovimentacao(TipoMovimentacaoEstoque.SAIDA);
@@ -108,79 +88,78 @@ public class VendaService {
         mov.setObservacao(observacao);
         mov.setEstoque(estoque);
         mov.setVenda(venda);
-        mov.setUsuario(UserContext.getUsuarioAutenticado());
+        mov.setProduto(produto);
+        mov.setUsuario(UserContext.getUsuario());
+        mov.setUnidade(UserContext.getUnidade());
 
-        return dao.insert(mov);
+        dao.insert(mov);
     }
-
-    // ===================== LANÇAMENTO FINANCEIRO (ENTRADA) =====================
 
     @Transactional
     private void gerarLancamentoFinanceiro(Venda venda) {
-
         LancamentoFinanceiro lanc = new LancamentoFinanceiro();
         lanc.setVenda(venda);
         lanc.setTipo(TipoLancamentoFinanceiro.ENTRADA);
         lanc.setValor(venda.getValorTotal());
         lanc.setDescricao("Venda - " + venda.getFormaPagamento());
-        lanc.setDataLancamento(new Date());
-        lanc.setUsuario(UserContext.getUsuarioAutenticado());
+        lanc.setDataLancamento(venda.getDataVenda());
+        lanc.setUsuario(UserContext.getUsuario());
+        lanc.setUnidade(UserContext.getUnidade());
 
         dao.insert(lanc);
     }
 
-    // ===================== CONSULTAS =====================
-
     @Transactional(readOnly = true)
-    public List<Venda> listarVendas() {
-        return dao.select()
+    public List<VendaResponseDTO> listarVendas() {
+        List<Venda> lista = dao.select()
                 .from(Venda.class)
                 .join("usuario")
-                .where("usuario.id", Condicao.EQUAL, UserContext.getIdUsuario())
+                .join("unidade")
+                .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                 .orderBy("dataVenda", false)
                 .list();
+        
+        return VendaResponseDTO.refactor(lista);
     }
 
     @Transactional(readOnly = true)
-    public Venda buscarPorId(Long id) {
-        return buscarVenda(id);
-    }
-
-    // ===================== HELPERS =====================
-
-    private Venda buscarVenda(Long id) {
+    public VendaResponseDTO buscarPorId(Long id) throws Exception {
         try {
-            return dao.select()
+            Venda v = dao.select()
                     .from(Venda.class)
                     .join("usuario")
-                    .where("usuario.id", Condicao.EQUAL, UserContext.getIdUsuario())
+                    .join("unidade")
+                    .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                     .id(id);
+            return VendaResponseDTO.from(v);
         } catch (Exception e) {
-            throw new NotFoundException("Venda não encontrada: " + id);
+            throw new NotFoundException("Venda não encontrada.");
         }
     }
 
-    private Produto buscarProduto(Long id) {
+    private Produto buscarProduto(Long id) throws Exception {
         try {
             return dao.select()
                     .from(Produto.class)
-                    .join("categoriaProduto")
+                    .join("unidade")
+                    .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                     .id(id);
         } catch (Exception e) {
-            throw new NotFoundException("Produto não encontrado: " + id);
+            throw new NotFoundException("Produto não encontrado.");
         }
     }
 
     private Estoque buscarEstoquePorProduto(Long produtoId) throws Exception {
-        Estoque estoque = dao.select()
-                .from(Estoque.class)
-                .join("produto")
-                .where("produto.id", Condicao.EQUAL, produtoId)
-                .one();
-
-        if (estoque == null) {
-            throw new NotFoundException("Estoque não encontrado para o produto: " + produtoId);
+        try {
+            return dao.select()
+                    .from(Estoque.class)
+                    .join("produto")
+                    .join("unidade")
+                    .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
+                    .where("produto.id", Condicao.EQUAL, produtoId)
+                    .one();
+        } catch (Exception e) {
+            throw new NotFoundException("Estoque não encontrado para o produto.");
         }
-        return estoque;
     }
 }

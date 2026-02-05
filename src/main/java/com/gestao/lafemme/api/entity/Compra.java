@@ -78,8 +78,17 @@
 	    public void setId(Long id) {
 	        this.id = id;
 	    }
+	    
 	
-	    public Date getDataCompra() {
+	    public Unidade getUnidade() {
+			return unidade;
+		}
+
+		public void setUnidade(Unidade unidade) {
+			this.unidade = unidade;
+		}
+
+		public Date getDataCompra() {
 	        return dataCompra;
 	    }
 	

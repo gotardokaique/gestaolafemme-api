@@ -77,7 +77,15 @@ public class Estoque {
         this.dataCadastro = dataCadastro;
     }
 
-    public Produto getProduto() {
+    public Unidade getUnidade() {
+		return unidade;
+	}
+
+	public void setUnidade(Unidade unidade) {
+		this.unidade = unidade;
+	}
+
+	public Produto getProduto() {
         return produto;
     }
 

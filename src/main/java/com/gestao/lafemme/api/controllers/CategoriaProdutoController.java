@@ -1,9 +1,14 @@
 package com.gestao.lafemme.api.controllers;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.gestao.lafemme.api.controllers.dto.CategoriaProdutoRequestDTO;
+import com.gestao.lafemme.api.controllers.dto.CategoriaProdutoResponseDTO;
+import com.gestao.lafemme.api.dev.FilterQuery;
 import com.gestao.lafemme.api.entity.CategoriaProduto;
 import com.gestao.lafemme.api.services.CategoriaProdutoService;
 
@@ -20,31 +25,52 @@ public class CategoriaProdutoController {
     // ===================== CRIAR =====================
 
     @PostMapping
-    public ResponseEntity<CategoriaProduto> criar(@RequestBody CategoriaProdutoRequestDTO dto) throws Exception {
-        CategoriaProduto created = categoriaService.criarCategoria(dto.nome(), dto.descricao());
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<String> criar(@RequestBody CategoriaProdutoRequestDTO dto) throws Exception {
+        categoriaService.criarCategoria(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Categoria criada com sucesso!");
     }
 
+    // ===================== LISTAR =====================
+
+    @GetMapping
+    public ResponseEntity<List<CategoriaProdutoResponseDTO>> listar(
+            @RequestParam(name = "ativo", required = false) Boolean ativo, FilterQuery filter
+    ) {
+        return ResponseEntity.ok(categoriaService.listar(ativo, filter));
+    }
+
+    // ===================== BUSCAR POR ID =====================
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoriaProdutoResponseDTO> buscarPorId(@PathVariable Long id) {
+        CategoriaProduto cat = categoriaService.buscarPorId(id);
+        return ResponseEntity.ok(CategoriaProdutoResponseDTO.refactor(cat));
+    }
+
+    // ===================== EDITAR =====================
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoriaProduto> editar(@PathVariable("id") Long id,
-                                                  @RequestBody CategoriaProdutoRequestDTO dto) throws Exception {
-        CategoriaProduto updated = categoriaService.editarCategoria(id, dto.nome(), dto.descricao());
-        return ResponseEntity.ok(updated);
+    public ResponseEntity<String> editar(@PathVariable("id") Long id,
+                                       @RequestBody CategoriaProdutoRequestDTO dto) throws Exception {
+        categoriaService.editarCategoria(id, dto);
+        return ResponseEntity.ok("Categoria atualizada com sucesso!");
     }
 
+    // ===================== STATUS =====================
+
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Void> alterarStatus(@PathVariable("id") Long id,
+    public ResponseEntity<String> alterarStatus(@PathVariable("id") Long id,
                                               @RequestParam(name = "ativo") boolean ativo) throws Exception {
         categoriaService.alterarStatusCategoria(id, ativo);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Status da categoria alterado com sucesso!");
     }
+
+    // ===================== DELETE =====================
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluirFisico(@PathVariable("id") Long id) throws Exception {
         categoriaService.excluirCategoriaFisico(id);
         return ResponseEntity.noContent().build();
     }
-
-    public record CategoriaProdutoRequestDTO(String nome, String descricao) {}
 }
+

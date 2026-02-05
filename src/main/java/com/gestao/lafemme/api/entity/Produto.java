@@ -117,7 +117,15 @@ public class Produto {
         return dataCadastro;
     }
 
-    public void setDataCadastro(Date dataCadastro) {
+    public Unidade getUnidade() {
+		return unidade;
+	}
+
+	public void setUnidade(Unidade unidade) {
+		this.unidade = unidade;
+	}
+
+	public void setDataCadastro(Date dataCadastro) {
         this.dataCadastro = dataCadastro;
     }
 

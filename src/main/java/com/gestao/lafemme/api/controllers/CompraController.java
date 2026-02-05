@@ -4,19 +4,11 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.gestao.lafemme.api.controllers.dto.CompraMovimentacaoRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CompraRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CompraResponseDTO;
-import com.gestao.lafemme.api.controllers.dto.MovimentacaoEstoqueResponseDTO;
 import com.gestao.lafemme.api.entity.Compra;
-import com.gestao.lafemme.api.entity.MovimentacaoEstoque;
 import com.gestao.lafemme.api.services.CompraService;
 
 @RestController
@@ -30,11 +22,9 @@ public class CompraController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> criar(@RequestBody CompraRequestDTO dto) throws Exception {
-
-        compraService.criarCompra(null, null, null, null, null);
-
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<String> criar(@RequestBody CompraRequestDTO dto) throws Exception {
+        compraService.criarCompra(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Compra realizada com sucesso!");
     }
 
     @GetMapping
@@ -45,8 +35,7 @@ public class CompraController {
     @GetMapping("/{id}")
     public ResponseEntity<CompraResponseDTO> buscarPorId(@PathVariable Long id) {
         Compra compra = compraService.buscarPorId(id);
-        
         return ResponseEntity.ok(CompraResponseDTO.refactor(compra));
     }
-
 }
+

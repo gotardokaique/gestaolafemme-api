@@ -8,6 +8,7 @@ public record CompraRequestDTO(
         String formaPagamento,
         Integer quantidade,
         Integer[] produtoIds,
-        String observacao
+        String observacao,
+        java.util.Date dataCompra
 ) {
 }

@@ -119,6 +119,14 @@ public class Venda {
         this.lancamentos = lancamentos;
     }
 
+    public Unidade getUnidade() {
+        return unidade;
+    }
+
+    public void setUnidade(Unidade unidade) {
+        this.unidade = unidade;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

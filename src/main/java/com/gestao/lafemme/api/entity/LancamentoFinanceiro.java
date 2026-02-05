@@ -68,7 +68,15 @@ public class LancamentoFinanceiro {
         this.id = id;
     }
 
-    public Date getDataLancamento() {
+    public Unidade getUnidade() {
+		return unidade;
+	}
+
+	public void setUnidade(Unidade unidade) {
+		this.unidade = unidade;
+	}
+
+	public Date getDataLancamento() {
         return dataLancamento;
     }
 
