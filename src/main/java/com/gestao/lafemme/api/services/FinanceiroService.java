@@ -23,7 +23,7 @@ public class FinanceiroService {
 
     public FinanceiroService(DAOController dao) {
         this.dao = dao;
-    }
+    }	
 
     @Transactional(readOnly = true)
     public FinanceiroResumoDTO obterResumoFinanceiro() {
