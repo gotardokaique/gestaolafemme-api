@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gestao.lafemme.api.controllers.dto.FornecedorRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.FornecedorResponseDTO;
+import com.gestao.lafemme.api.dev.FilterQuery;
 import com.gestao.lafemme.api.entity.Fornecedor;
 import com.gestao.lafemme.api.services.FornecedorService;
 
@@ -41,11 +42,12 @@ public class FornecedorController {
     // ===================== LISTAR =====================
 
     @GetMapping
-    public ResponseEntity<List<FornecedorResponseDTO>> listar() {
-      
-
-        return ResponseEntity.ok(fornecedorService.listarTodos());
+    public ResponseEntity<List<FornecedorResponseDTO>> listar(
+            @RequestParam(name = "ativo", required = false) Boolean ativo, FilterQuery filter
+    ) {
+        return ResponseEntity.ok(fornecedorService.listar(ativo, filter));
     }
+
 
     // ===================== BUSCAR POR ID =====================
 

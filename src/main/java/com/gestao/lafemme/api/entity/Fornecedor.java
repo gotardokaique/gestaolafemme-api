@@ -70,8 +70,18 @@ public class Fornecedor {
     public String getTelefone() {
         return telefone;
     }
+    
+    
 
-    public void setTelefone(String telefone) {
+    public Unidade getUnidade() {
+		return unidade;
+	}
+
+	public void setUnidade(Unidade unidade) {
+		this.unidade = unidade;
+	}
+
+	public void setTelefone(String telefone) {
         this.telefone = telefone;
     }
 

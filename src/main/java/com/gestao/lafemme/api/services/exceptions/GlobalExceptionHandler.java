@@ -1,14 +1,16 @@
 package com.gestao.lafemme.api.services.exceptions;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.gestao.lafemme.api.controllers.dto.ApiResponse;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -18,45 +20,40 @@ public class GlobalExceptionHandler {
     // ✅ 404 - NOT FOUND (sua)
     @ResponseBody
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(NotFoundException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(NotFoundException ex) {
         logNoStack(ex, HttpStatus.NOT_FOUND);
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(msg(ex));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(fail(ex.getMessage()));
     }
 
     // ✅ 404 - NOT FOUND (JPA)
     @ResponseBody
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleJpaNotFound(EntityNotFoundException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleJpaNotFound(EntityNotFoundException ex) {
         logNoStack(ex, HttpStatus.NOT_FOUND);
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(msg(ex));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(fail(ex.getMessage()));
     }
 
     // ✅ 400/409 - BUSINESS (SEM stack)
     @ResponseBody
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<Map<String, String>> handleBusiness(BusinessException ex) {
-        // se quiser padronizar como 409 quando for duplicidade, você pode criar uma BusinessConflictException.
+    public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException ex) {
         logNoStack(ex, HttpStatus.BAD_REQUEST);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg(ex));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(fail(ex.getMessage()));
     }
 
     // ✅ Genérico: só erro REAL (COM stack)
     @ResponseBody
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
+    public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
         logWithStack(ex, HttpStatus.INTERNAL_SERVER_ERROR);
-
-        Map<String, String> body = new HashMap<>();
-        body.put("message", "Ops, algo deu errado!");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(fail("Ops, algo deu errado!"));
     }
 
     // ----------------- helpers -----------------
 
-    private Map<String, String> msg(Exception ex) {
-        Map<String, String> body = new HashMap<>();
-        body.put("message", ex.getMessage());
-        return body;
+    private ApiResponse<Void> fail(String message) {
+        return ApiResponse.fail(message);
     }
 
     private void logNoStack(Throwable ex, HttpStatus status) {

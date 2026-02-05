@@ -15,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.entity.Usuario;
+import com.gestao.lafemme.api.entity.UsuarioUnidade;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -100,6 +101,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .limit(1)
                     .one();
 
+            if (usuario == null) return null;
+
+            // >>> AQUI: resolve unidade e seta no principal <<<
+            UsuarioUnidade  uu = daoController
+                    .select()
+                    .from(com.gestao.lafemme.api.entity.UsuarioUnidade.class)
+                    .join("usuario")
+                    .join("unidade")
+                    .where("usuario.id", Condicao.EQUAL, usuario.getId())
+                    .where("unidade.ativo", Condicao.EQUAL, true) // opcional, mas recomendado
+                    .limit(1)
+                    .one();
+
+            if (uu != null && uu.getUnidade() != null) {
+                usuario.setUnidadeAtiva(uu.getUnidade());
+            }
+
             return usuario;
 
         } catch (Exception e) {
@@ -107,4 +125,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return null;
         }
     }
+
 }

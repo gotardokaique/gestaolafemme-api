@@ -36,6 +36,10 @@ public class UserContext {
     public static String getEmailUsuario() {
         return getUsuarioAutenticado().getEmail();
     }
+    
+    public static Usuario getUsuario() {
+    	return getUsuarioAutenticado();
+    }
 
     // ===================== UNIDADE =====================
 

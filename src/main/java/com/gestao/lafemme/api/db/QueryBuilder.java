@@ -34,6 +34,7 @@ public class QueryBuilder {
     private boolean projection = false;
     private final List<String> selectedRawFields = new ArrayList<>();
     private Integer maxResults;
+    private boolean hasOrderBy = false;
 
     public QueryBuilder(TransactionDB transactionDB) {
         this.entityManager = transactionDB.getEntityManager();
@@ -44,11 +45,21 @@ public class QueryBuilder {
         params.clear();
         hasWhere = false;
         rootAlias = "c";
+        hasOrderBy = false;
         entityClass = null;
         entityName = null;
         projection = false;
         selectedRawFields.clear();
         maxResults = null;
+    }
+    
+    private void appendWherePrefix() {
+        if (!hasWhere) {
+            jpql.append("WHERE ");
+            hasWhere = true;
+        } else {
+            jpql.append("AND ");
+        }
     }
 
     public QueryBuilder select() {
@@ -189,12 +200,7 @@ public class QueryBuilder {
     }
 
     public QueryBuilder where(String campo, Condicao condicao, Object... valores) {
-        if (!hasWhere) {
-            jpql.append("WHERE ");
-            hasWhere = true;
-        } else {
-            jpql.append("AND ");
-        }
+    	appendWherePrefix();
 
         String f = qualifyField(campo);
 
@@ -240,14 +246,51 @@ public class QueryBuilder {
         }
         return this;
     }
+    
+ // ADICIONAR
+    public QueryBuilder where(WhereDB where) {
+        if (where == null) {
+            throw new IllegalArgumentException("where não pode ser nulo");
+        }
+        if (where.isEmpty()) {
+            return this;
+        }
+
+        for (WhereDB.WhereItem item : where.getItens()) {
+            // reaproveita sua lógica existente (validações + params)
+            this.where(item.getCampo(), item.getCondicao(), item.getValores());
+        }
+        return this;
+    }
 
     public QueryBuilder orderBy(String campo, boolean asc) {
         String f = qualifyField(campo);
-        jpql.append("ORDER BY ")
-            .append(f)
-            .append(asc ? " ASC " : " DESC ");
+
+        if (!hasOrderBy) {
+            jpql.append("ORDER BY ");
+            hasOrderBy = true;
+        } else {
+            jpql.append(", ");
+        }
+
+        jpql.append(f).append(asc ? " ASC " : " DESC ");
         return this;
     }
+    
+     public QueryBuilder orderBy(OrderDB order) {
+        if (order == null) {
+            throw new IllegalArgumentException("order não pode ser nulo");
+        }
+        if (order.isEmpty()) {
+            return this;
+        }
+
+        for (OrderDB.OrderItem item : order.getItens()) {
+            this.orderBy(item.getCampo(), item.isAsc());
+        }
+        return this;
+    }
+
 
     public QueryBuilder limit(int max) {
         if (max <= 0) {

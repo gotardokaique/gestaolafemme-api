@@ -1,6 +1,7 @@
 package com.gestao.lafemme.api.services;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.context.UserContext;
+import com.gestao.lafemme.api.controllers.dto.CompraResponseDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.entity.Compra;
@@ -199,14 +201,21 @@ public class CompraService {
     // ===================== CONSULTAS =====================
 
     @Transactional(readOnly = true)
-    public List<Compra> listarCompras() {
-        return dao.select()
-                .from(Compra.class)
-                .join("fornecedor")
-                .join("usuario")
-                .where("usuario.id", Condicao.EQUAL, UserContext.getIdUsuario())
-                .orderBy("dataCompra", false)
-                .list();
+    public List<CompraResponseDTO> listarCompras() {
+    	List<Compra> compList; 
+    	try {
+    		compList = dao.select()
+            .from(Compra.class)
+            .join("fornecedor")
+            .join("usuario")
+            .where("usuario.id", Condicao.EQUAL, UserContext.getIdUsuario())
+            .orderBy("dataCompra", false)
+            .list();
+		} catch (NotFoundException e) {
+			compList = new ArrayList<Compra>();
+		} 
+    	
+        return CompraResponseDTO.refactor(compList);
     }
 
     @Transactional(readOnly = true)
