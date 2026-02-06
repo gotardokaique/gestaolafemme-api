@@ -96,7 +96,7 @@ public class AuthenticationController {
         if (isSenhaValida == false) {
         	 return ResponseEntity.status(HttpStatus.CONFLICT)
                      .body("Senha fraca, tente usar caracteres especias, letras maiusculas...");
-        }
+        	}
 
         String hashed = passwordEncoder.encode(senha);
         boolean isCadastradado = registerBO.cadastrarUsuario(nome, email, hashed, 1L);

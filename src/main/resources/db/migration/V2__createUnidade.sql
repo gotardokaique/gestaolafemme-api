@@ -35,9 +35,9 @@ INSERT INTO usuario (
   perfil_usuario_id
 )
 SELECT
-  'Admin',
-  'admin1@lafemme.com',
-  '$argon2id$v=19$m=65536,t=5,p=2$SSbhQdEJwQyG7T/rMsazlQ$e14mQ5qhz+I8+ldMz7MmaG3LGaWnWebki0kgxtYBhHokKFS9A9iwNS+QM/Oibu7XhM8',
+  'Shamia Andressa',
+  'shamiapbo@gmail.com',
+  '$argon2id$v=19$m=65536,t=5,p=2$etg/LXOVRuQk/WVU9Lj0bw$6uzcQ665URvEOdzue3aTabk6Am4FmFNqYLvWOCwO2cwtLKFh29OafsMl/X2AW8f254s',
   TRUE,
   NOW(),
   (SELECT per_id
@@ -48,5 +48,5 @@ SELECT
     LIMIT 1
   )
 WHERE NOT EXISTS (
-  SELECT 1 FROM usuario WHERE usu_email = 'admin1@lafemme.com'
+  SELECT 1 FROM usuario WHERE usu_email = 'shamiapbo@gmail.com'
 );

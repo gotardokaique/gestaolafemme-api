@@ -14,7 +14,7 @@ SELECT
 FROM usuario u
 JOIN unidade un
   ON un.uni_nome = 'Gestão LaFemme'
-WHERE u.usu_email = 'admin1@lafemme.com'
+WHERE u.usu_email = 'shamiapbo@gmail.com'
 AND NOT EXISTS (
   SELECT 1
   FROM usuario_unidade uu

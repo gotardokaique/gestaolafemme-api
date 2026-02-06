@@ -38,6 +38,8 @@ CREATE TABLE usuario (
   usu_senha         VARCHAR(255) NOT NULL,
   usu_ativo         BOOLEAN NOT NULL DEFAULT TRUE,
   usu_data_criacao  TIMESTAMP NOT NULL DEFAULT NOW(),
+  usu_trocarsenha BOOLEAN NOT NULL DEFAULT FALSE,
+  usu_senhatrocadaem TIMESTAMP,
 
   perfil_usuario_id BIGINT NOT NULL,
 
@@ -46,7 +48,7 @@ CREATE TABLE usuario (
 
   CONSTRAINT fk_usuario_perfil_usuario
     FOREIGN KEY (perfil_usuario_id)
-    REFERENCES perfil_usuario (per_id)
+    REFERENCES perfil_usuario (per_id)   
 );
 
 CREATE INDEX idx_usuario_perfil_usuario_id

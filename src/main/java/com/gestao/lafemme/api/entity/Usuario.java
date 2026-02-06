@@ -39,6 +39,7 @@ public class Usuario implements UserDetails, Serializable {
         this.email = email;
         this.senha = senha;
         this.ativo = true;
+        this.trocarSenha = false;
     }
 
     public Usuario(String nome, String email, String senha, PerfilUsuario perfil) {
@@ -67,6 +68,13 @@ public class Usuario implements UserDetails, Serializable {
     @Column(name = "usu_data_criacao", nullable = false)
     private Date dataCriacao;
 
+    @Column(name = "usu_trocarsenha", nullable = false)
+    private boolean trocarSenha;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "usu_senhatrocadaem")
+    private Date senhaTrocadaEm;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "perfil_usuario_id", nullable = false)
     private PerfilUsuario perfilUsuario;
@@ -90,6 +98,8 @@ public class Usuario implements UserDetails, Serializable {
     protected void onCreate() {
         if (this.dataCriacao == null) this.dataCriacao = new Date();
         if (!this.ativo) this.ativo = true;
+        // Inicializa trocarSenha como false se não foi definido
+        // (será true apenas quando admin criar usuário)
     }
 
     @Override
@@ -138,6 +148,12 @@ public class Usuario implements UserDetails, Serializable {
 
     public Unidade getUnidadeAtiva() { return unidadeAtiva; }
     public void setUnidadeAtiva(Unidade unidadeAtiva) { this.unidadeAtiva = unidadeAtiva; }
+
+    public boolean isTrocarSenha() { return trocarSenha; }
+    public void setTrocarSenha(boolean trocarSenha) { this.trocarSenha = trocarSenha; }
+
+    public Date getSenhaTrocadaEm() { return senhaTrocadaEm; }
+    public void setSenhaTrocadaEm(Date senhaTrocadaEm) { this.senhaTrocadaEm = senhaTrocadaEm; }
 
     @Override
     public boolean equals(Object o) {
