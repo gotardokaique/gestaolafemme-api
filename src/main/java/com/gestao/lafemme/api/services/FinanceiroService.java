@@ -14,7 +14,7 @@ import com.gestao.lafemme.api.controllers.dto.LancamentoFinanceiroResponseDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.entity.LancamentoFinanceiro;
-import com.gestao.lafemme.api.entity.TipoLancamentoFinanceiro;
+import com.gestao.lafemme.api.enuns.TipoLancamentoFinanceiro;
 
 @Service
 public class FinanceiroService {

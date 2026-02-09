@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Objects;
 
+import com.gestao.lafemme.api.enuns.TipoLancamentoFinanceiro;
+
 @Entity
 @Table(name = "lancamento_financeiro")
 public class LancamentoFinanceiro {

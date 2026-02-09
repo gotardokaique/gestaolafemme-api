@@ -18,7 +18,7 @@ import com.gestao.lafemme.api.entity.CategoriaProduto;
 import com.gestao.lafemme.api.entity.Estoque;
 import com.gestao.lafemme.api.entity.MovimentacaoEstoque;
 import com.gestao.lafemme.api.entity.Produto;
-import com.gestao.lafemme.api.entity.TipoMovimentacaoEstoque;
+import com.gestao.lafemme.api.enuns.TipoMovimentacaoEstoque;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 

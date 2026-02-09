@@ -1,4 +1,4 @@
-package com.gestao.lafemme.api.entity;
+package com.gestao.lafemme.api.enuns;
 
 public enum TipoLancamentoFinanceiro {
     ENTRADA,

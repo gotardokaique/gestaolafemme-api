@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.util.Date;
 import java.util.Objects;
 
+import com.gestao.lafemme.api.enuns.TipoMovimentacaoEstoque;
+
 @Entity
 @Table(name = "movimentacao_estoque")
 public class MovimentacaoEstoque {
