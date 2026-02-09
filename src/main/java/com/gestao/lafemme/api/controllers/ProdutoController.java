@@ -1,11 +1,13 @@
 package com.gestao.lafemme.api.controllers;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.gestao.lafemme.api.controllers.dto.FotoCatalogoRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.ProdutoAjusteEstoqueDTO;
 import com.gestao.lafemme.api.controllers.dto.ProdutoRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.ProdutoResponseDTO;
@@ -63,5 +65,35 @@ public class ProdutoController {
         produtoService.excluirProdutoFisico(id);
         return ResponseEntity.ok("Produto excluído com sucesso!");
     }
-}
 
+    // ============ Catálogo de Fotos ============
+
+    /**
+     * Adiciona uma foto ao catálogo do produto.
+     * POST /api/v1/produtos/{id}/catalogo
+     */
+    @PostMapping("/{id}/catalogo")
+    public ResponseEntity<?> adicionarFotoCatalogo(
+            @PathVariable Long id,
+            @RequestBody FotoCatalogoRequestDTO dto
+    ) throws Exception {
+        Long anexoId = produtoService.adicionarFotoCatalogo(id, dto.nome(), dto.mimeType(), dto.arquivo());
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+            "message", "Foto adicionada ao catálogo com sucesso!",
+            "id", anexoId
+        ));
+    }
+
+    /**
+     * Remove uma foto do catálogo do produto.
+     * DELETE /api/v1/produtos/{id}/catalogo/{anexoId}
+     */
+    @DeleteMapping("/{id}/catalogo/{anexoId}")
+    public ResponseEntity<String> removerFotoCatalogo(
+            @PathVariable Long id,
+            @PathVariable Long anexoId
+    ) throws Exception {
+        produtoService.removerFotoCatalogo(id, anexoId);
+        return ResponseEntity.ok("Foto removida do catálogo com sucesso!");
+    }
+}

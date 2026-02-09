@@ -2,6 +2,7 @@ package com.gestao.lafemme.api.services;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 
@@ -9,15 +10,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.context.UserContext;
+import com.gestao.lafemme.api.controllers.dto.FotoDTO;
 import com.gestao.lafemme.api.controllers.dto.ProdutoRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.ProdutoResponseDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.db.WhereDB;
+import com.gestao.lafemme.api.entity.Anexo;
 import com.gestao.lafemme.api.entity.CategoriaProduto;
 import com.gestao.lafemme.api.entity.Estoque;
 import com.gestao.lafemme.api.entity.MovimentacaoEstoque;
 import com.gestao.lafemme.api.entity.Produto;
+import com.gestao.lafemme.api.enuns.TipoAnexo;
 import com.gestao.lafemme.api.enuns.TipoMovimentacaoEstoque;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
@@ -125,6 +129,11 @@ public class ProdutoService {
 
         dao.insert(estoque);
 
+        // Salvar foto do produto, se informada
+        if (dto.foto() != null) {
+            salvarFotoProduto(salvo, dto.foto());
+        }
+
         return salvo;
     }
 
@@ -180,6 +189,11 @@ public class ProdutoService {
 
         if (dto.estoqueMinimo() != null) {
             produto.getEstoque().setEstoqueMinimo(Math.max(dto.estoqueMinimo(), 0));
+        }
+
+        // Atualizar foto do produto, se informada
+        if (dto.foto() != null) {
+            salvarFotoProduto(produto, dto.foto());
         }
 
         return dao.update(produto);
@@ -268,5 +282,104 @@ public class ProdutoService {
             throw new NotFoundException("Produto não encontrado.");
         }
     }
-}
 
+    /**
+     * Salva ou atualiza a foto do produto como Anexo do tipo FOTO_PRODUTO.
+     * Remove a foto anterior, se existir, garantindo apenas uma foto por produto.
+     */
+    private void salvarFotoProduto(Produto produto, FotoDTO fotoDTO) {
+        if (fotoDTO.arquivo() == null || fotoDTO.arquivo().isBlank()) {
+            return;
+        }
+
+        byte[] arquivoBytes = Base64.getDecoder().decode(fotoDTO.arquivo());
+
+        // Remover foto anterior, se existir
+        try {
+            Anexo fotoAnterior = dao.select()
+                    .from(Anexo.class)
+                    .where("produto.id", Condicao.EQUAL, produto.getId())
+                    .where("tipo", Condicao.EQUAL, TipoAnexo.FOTO_PRODUTO)
+                    .one();
+            dao.delete(fotoAnterior);
+        } catch (NotFoundException not) {
+            // Não havia foto anterior
+        } catch (Exception e) {
+            throw new BusinessException("Erro ao remover foto anterior: " + e.getMessage());
+        }
+
+        // Criar novo anexo
+        Anexo anexo = new Anexo();
+        anexo.setTipo(TipoAnexo.FOTO_PRODUTO);
+        anexo.setNome(fotoDTO.nome() != null ? fotoDTO.nome() : "foto_produto");
+        anexo.setMimeType(fotoDTO.mimeType() != null ? fotoDTO.mimeType() : "image/jpeg");
+        anexo.setArquivo(arquivoBytes);
+        anexo.setTamanhoBytes((long) arquivoBytes.length);
+        anexo.setProduto(produto);
+
+        dao.insert(anexo);
+    }
+
+    // ============ Métodos para Catálogo de Fotos ============
+
+    /**
+     * Adiciona uma foto ao catálogo do produto.
+     * 
+     * @param produtoId ID do produto
+     * @param nome      Nome/descrição da foto (ex: "COR: VERMELHA")
+     * @param mimeType  Tipo MIME do arquivo
+     * @param arquivo   Conteúdo do arquivo em Base64
+     * @return ID do anexo criado
+     */
+    @Transactional
+    public Long adicionarFotoCatalogo(Long produtoId, String nome, String mimeType, String arquivo) throws Exception {
+        Produto produto = carregarProdutoEntidade(produtoId);
+
+        if (arquivo == null || arquivo.isBlank()) {
+            throw new BusinessException("Arquivo é obrigatório.");
+        }
+
+        byte[] arquivoBytes = Base64.getDecoder().decode(arquivo);
+
+        Anexo anexo = new Anexo();
+        anexo.setTipo(TipoAnexo.FOTO_CATALOGO_PRODUTO);
+        anexo.setNome(nome != null && !nome.isBlank() ? nome : "Foto catálogo");
+        anexo.setMimeType(mimeType != null ? mimeType : "image/jpeg");
+        anexo.setArquivo(arquivoBytes);
+        anexo.setTamanhoBytes((long) arquivoBytes.length);
+        anexo.setProduto(produto);
+
+        dao.insert(anexo);
+
+        return anexo.getId();
+    }
+
+    /**
+     * Remove uma foto do catálogo do produto.
+     * 
+     * @param produtoId ID do produto
+     * @param anexoId   ID do anexo a ser removido
+     */
+    @Transactional
+    public void removerFotoCatalogo(Long produtoId, Long anexoId) throws Exception {
+        // Validar que o produto existe e pertence à unidade
+        carregarProdutoEntidade(produtoId);
+
+        Anexo anexo;
+        try {
+            anexo = dao.select()
+                    .from(Anexo.class)
+                    .join("produto")
+                    .join("produto.unidade")
+                    .where("id", Condicao.EQUAL, anexoId)
+                    .where("produto.id", Condicao.EQUAL, produtoId)
+                    .where("produto.unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
+                    .where("tipo", Condicao.EQUAL, TipoAnexo.FOTO_CATALOGO_PRODUTO)
+                    .one();
+        } catch (NotFoundException e) {
+            throw new NotFoundException("Foto não encontrada no catálogo.");
+        }
+
+        dao.delete(anexo);
+    }
+}

@@ -1,6 +1,7 @@
 package com.gestao.lafemme.api.controllers.dto;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -21,7 +22,8 @@ public record ProdutoResponseDTO(
         Long categoriaId,
         String categoriaNome,
         Integer estoqueMinimo,
-        Integer quantidadeAtual
+        Integer quantidadeAtual,
+        Date dataCadastro
 ) {
     public static ProdutoResponseDTO refactor(Produto prod) {
         return new ProdutoResponseDTO(
@@ -35,7 +37,8 @@ public record ProdutoResponseDTO(
                 prod.getCategoriaProduto().getId(),
                 prod.getCategoriaProduto().getNome(),
                 prod.getEstoque().getEstoqueMinimo(),
-                prod.getEstoque().getQuantidadeAtual()
+                prod.getEstoque().getQuantidadeAtual(),
+                prod.getDataCadastro()
         );
     }
     
@@ -46,3 +49,4 @@ public record ProdutoResponseDTO(
                 .collect(Collectors.toList());
     }
 }
+

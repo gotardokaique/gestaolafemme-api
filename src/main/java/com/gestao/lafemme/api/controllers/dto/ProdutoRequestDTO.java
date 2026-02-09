@@ -11,5 +11,6 @@ public record ProdutoRequestDTO(
         Boolean ativo,
         Integer quantidadeInicial,
         BigDecimal valorCusto,
-        BigDecimal valorVenda
+        BigDecimal valorVenda,
+        FotoDTO foto
 ) {}

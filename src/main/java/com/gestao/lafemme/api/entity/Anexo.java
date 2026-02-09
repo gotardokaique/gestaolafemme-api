@@ -25,9 +25,9 @@ import jakarta.persistence.TemporalType;
 
 @Entity
 @Table(name = "anexo", indexes = {
-    @Index(name = "idx_anexo_usuario", columnList = "usua_id"),
+    @Index(name = "idx_anexo_usuario", columnList = "usu_id"),
     @Index(name = "idx_anexo_produto", columnList = "prod_id"),
-    @Index(name = "idx_anexo_unidade", columnList = "unid_id"),
+    @Index(name = "idx_anexo_unidade", columnList = "uni_id"),
     @Index(name = "idx_anexo_tipo", columnList = "anex_tipo")
 })
 public class Anexo {
@@ -54,13 +54,12 @@ public class Anexo {
     @Column(name = "anex_tamanho_bytes", nullable = false)
     private Long tamanhoBytes;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "anex_arquivo", nullable = false)
+    @Column(name = "anex_arquivo", nullable = false, columnDefinition = "bytea")
     private byte[] arquivo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usua_id")
+    @JoinColumn(name = "usu_id")
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -68,7 +67,7 @@ public class Anexo {
     private Produto produto;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unid_id")
+    @JoinColumn(name = "uni_id")
     private Unidade unidade;
 
     @PrePersist
