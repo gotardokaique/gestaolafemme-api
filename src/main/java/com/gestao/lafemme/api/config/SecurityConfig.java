@@ -11,13 +11,15 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -45,6 +47,9 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:}")
     private String allowedOriginsCsv;
 
+    @Value("${app.security.require-https:true}")
+    private boolean requireHttps;
+
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           DAOController daoController) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -54,45 +59,105 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AuthenticationProvider authenticationProvider) throws Exception {
+
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> {}) // usa o CorsConfigurationSource abaixo
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .anyRequest().authenticated()
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .logout(AbstractHttpConfigurer::disable)
+            .rememberMe(AbstractHttpConfigurer::disable);
+
+        if (requireHttps) {
+            http.requiresChannel(channel ->
+                channel.anyRequest().requiresSecure()
+            );
+        }
+
+
+        http
+            .authorizeHttpRequests(auth -> auth
+                // Pré-flight CORS
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .authenticationProvider(authenticationProvider)
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((req, res, e) -> {
+                    res.setStatus(401);
+                    res.setContentType("application/json");
+                    res.getWriter().write("{\"message\":\"Não autorizado\"}");
+                })
+                .accessDeniedHandler((req, res, e) -> {
+                    res.setStatus(403);
+                    res.setContentType("application/json");
+                    res.getWriter().write("{\"message\":\"Acesso negado\"}");
+                })
+            )
+
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.deny())
+                .contentTypeOptions(Customizer.withDefaults())
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
                 )
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            );
 
         return http.build();
     }
 
     @Bean
     public AuthenticationProvider authenticationProvider(PasswordEncoder passwordEncoder) {
+        final String DUMMY_HASH = "$argon2id$v=19$m=65536,t=5,p=2$W6xM2Kftt/BSVv45LwZVfw$zMLxp6E1IhLbu/6x07H+8odCck+ZdOo5t6Jw45hPBM+Bs3/3h3lRGyl5FmUclwRj7+8\n";
+
         return new AuthenticationProvider() {
 
             @Override
             public Authentication authenticate(Authentication authentication) throws AuthenticationException {
                 String username = authentication.getName();
-                String senhaRaw = authentication.getCredentials().toString();
+                String senhaRaw = authentication.getCredentials() != null
+                        ? authentication.getCredentials().toString()
+                        : "";
+
+                if (!StringUtils.hasText(username)) {
+                    passwordEncoder.matches(senhaRaw, DUMMY_HASH);
+                    throw new BadCredentialsException("Usuário ou senha inválidos.");
+                }
+
+                String email = username.trim().toLowerCase();
+
+                if (email.length() > 120 || senhaRaw.length() > 120) {
+                    passwordEncoder.matches(senhaRaw, DUMMY_HASH);
+                    throw new BadCredentialsException("Usuário ou senha inválidos.");
+                }
 
                 Usuario usuario;
                 try {
                     usuario = daoController
                             .select()
                             .from(Usuario.class)
-                            .where("email", Condicao.EQUAL, username.toLowerCase().trim())
+                            .where("email", Condicao.EQUAL, email)
                             .limit(1)
                             .one();
                 } catch (Exception e) {
+                    passwordEncoder.matches(senhaRaw, DUMMY_HASH);
                     throw new BadCredentialsException("Usuário ou senha inválidos.");
                 }
 
                 if (!passwordEncoder.matches(senhaRaw, usuario.getSenha())) {
                     throw new BadCredentialsException("Usuário ou senha inválidos.");
+                }
+
+                try {
+                    if (!usuario.isAccountNonLocked() || !usuario.isEnabled()) {
+                        throw new BadCredentialsException("Usuário ou senha inválidos.");
+                    }
+                } catch (NoSuchMethodError | Exception ignored) {
                 }
 
                 return new UsernamePasswordAuthenticationToken(
@@ -119,7 +184,6 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Se não setar a env, por padrão não libera ninguém (mais seguro).
-        // Você pode trocar pra uma lista default se quiser.
         List<String> allowedOrigins = parseAllowedOrigins(allowedOriginsCsv);
 
         config.setAllowedOrigins(allowedOrigins);
@@ -128,6 +192,9 @@ public class SecurityConfig {
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
 
+        // reduz preflight repetido (opcional, mas útil)
+        config.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
@@ -135,11 +202,11 @@ public class SecurityConfig {
 
     private List<String> parseAllowedOrigins(String csv) {
         if (!StringUtils.hasText(csv)) {
-            return List.of(); // seguro: não abre CORS por acidente
+            return List.of();
         }
         return Arrays.stream(csv.split(","))
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .toList();
-    }
+    }    
 }

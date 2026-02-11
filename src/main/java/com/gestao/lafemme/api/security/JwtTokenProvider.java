@@ -1,9 +1,10 @@
 package com.gestao.lafemme.api.security;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
+import java.util.Date;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,9 +12,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.Map;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 
 @Component
 public class JwtTokenProvider {
@@ -26,34 +33,53 @@ public class JwtTokenProvider {
     @Value("${api.security.jwt.expiration-ms}")
     private long jwtExpirationMs;
 
+    private static final long ALLOWED_CLOCK_SKEW_SECONDS = 30L;
+
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(this.jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        try {
+            byte[] keyBytes = Decoders.BASE64.decode(this.jwtSecret);
+
+            if (keyBytes.length < 64) {
+                logger.warn("JWT secret possui {} bytes após decode. Ideal para HS512 é >= 64 bytes. Fortaleça o secret em produção.", keyBytes.length);
+            }
+
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (IllegalArgumentException ex) {
+            logger.error("JWT secret inválido (não é Base64 válido). Verifique api.security.jwt.secret", ex);
+            throw new IllegalStateException("Configuração de JWT secret inválida", ex);
+        }
     }
 
     public String generateToken(Authentication authentication) {
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-        return generateTokenFromUsername(userPrincipal.getUsername());
+        Object principal = authentication.getPrincipal();
+        String username;
+
+        if (principal instanceof UserDetails userDetails) {
+        	
+            username = userDetails.getUsername();
+        } else if (principal != null) {
+        	
+            username = principal.toString();
+        } else {
+        	
+            throw new IllegalArgumentException("Principal nulo ao gerar token JWT");
+        }
+
+        return generateTokenFromUsername(username);
     }
 
+    /**
+     * Gera token a partir do username (email). Ponto único de geração.
+     */
     public String generateTokenFromUsername(String username) {
-        return generateToken(username, null);
-    }
-
-    public String generateToken(String username, Map<String, Object> claims) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
-        JwtBuilder builder = Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate);
-
-        if (claims != null && !claims.isEmpty()) {
-            builder.addClaims(claims);
-        }
-
-        return builder
+        return Jwts.builder()
+                .setId(UUID.randomUUID().toString()) 
+                .setSubject(username)                   // sub
+                .setIssuedAt(now)                       // iat
+                .setExpiration(expiryDate)              // exp
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
@@ -63,55 +89,33 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
-    public Long getLongClaim(String token, String claimName) {
-        Claims claims = parseClaims(token);
-        Object value = claims.get(claimName);
-        if (value == null) return null;
-
-        if (value instanceof Number n) {
-            return n.longValue();
+    public boolean validateToken(String authToken) {
+        try {
+            parseClaims(authToken);
+            return true;
+        } catch (SignatureException ex) {
+            logger.debug("Assinatura JWT inválida");
+        } catch (MalformedJwtException ex) {
+            logger.debug("Token JWT malformado");
+        } catch (ExpiredJwtException ex) {
+            logger.debug("Token JWT expirado");
+        } catch (UnsupportedJwtException ex) {
+            logger.debug("Token JWT não suportado");
+        } catch (IllegalArgumentException ex) {
+            logger.debug("Token JWT vazio ou nulo");
+        } catch (Exception ex) {
+            // fallback para qualquer coisa inesperada
+            logger.error("Erro inesperado ao validar token JWT", ex);
         }
-
-        if (value instanceof String s) {
-            try {
-                return Long.parseLong(s);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-
-        return null;
-    }
-
-    public String getStringClaim(String token, String claimName) {
-        Claims claims = parseClaims(token);
-        Object value = claims.get(claimName);
-        return value != null ? String.valueOf(value) : null;
+        return false;
     }
 
     private Claims parseClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
+                .setAllowedClockSkewSeconds(ALLOWED_CLOCK_SKEW_SECONDS)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-    }
-
-    public boolean validateToken(String authToken) {
-        try {
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(authToken);
-            return true;
-        } catch (SignatureException ex) {
-            logger.error("Assinatura JWT inválida: {}", ex.getMessage());
-        } catch (MalformedJwtException ex) {
-            logger.error("Token JWT inválido: {}", ex.getMessage());
-        } catch (ExpiredJwtException ex) {
-            logger.error("Token JWT expirado: {}", ex.getMessage());
-        } catch (UnsupportedJwtException ex) {
-            logger.error("Token JWT não suportado: {}", ex.getMessage());
-        } catch (IllegalArgumentException ex) {
-            logger.error("Argumento JWT inválido: {}", ex.getMessage());
-        }
-        return false;
     }
 }

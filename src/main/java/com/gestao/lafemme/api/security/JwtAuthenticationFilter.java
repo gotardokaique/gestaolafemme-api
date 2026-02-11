@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -27,10 +26,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final int MAX_TOKEN_LENGTH = 2048;
+
     private final JwtTokenProvider tokenProvider;
     private final DAOController daoController;
 
-    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, DAOController daoController) {
+    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider,
+                                   DAOController daoController) {
         this.tokenProvider = tokenProvider;
         this.daoController = daoController;
     }
@@ -38,61 +41,103 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        if (path.startsWith("/api/v1/auth/")) {
-            logger.debug("JWT FILTER: Bypass para path de autenticação: {}", path);
+
+        // 1️⃣ Bypass rotas públicas
+        if (isPublicAuthPath(path)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
+
+            // 2️⃣ Se já existe auth no contexto, não sobrescreve
+            if (SecurityContextHolder.getContext().getAuthentication() != null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 3️⃣ Extrai token
             String jwt = getJwtFromRequest(request);
+            if (!StringUtils.hasText(jwt)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                String username = tokenProvider.getUsernameFromJWT(jwt); // normalmente email
+            // 4️⃣ Limite defensivo contra header gigante
+            if (jwt.length() > MAX_TOKEN_LENGTH) {
+                logger.warn("JWT com tamanho inválido ({} chars)", jwt.length());
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-                UserDetails userDetails = carregarUserDetails(username);
-                if (userDetails != null) {
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,
-                                    userDetails.getAuthorities()
-                            );
+            // 5️⃣ Valida assinatura / expiração
+            if (!tokenProvider.validateToken(jwt)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-                    authentication.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
+            String username = tokenProvider.getUsernameFromJWT(jwt);
+            if (!StringUtils.hasText(username)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 6️⃣ Carrega usuário
+            Usuario usuario = carregarUsuarioComUnidade(username);
+            if (usuario == null) {
+                logger.warn("JWT válido mas usuário não encontrado: {}", username);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 7️⃣ Define autenticação
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            usuario,
+                            null,
+                            usuario.getAuthorities()
                     );
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                } else {
-                    logger.warn("JWT válido mas usuário não encontrado: {}", username);
-                }
-            }
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
         } catch (Exception ex) {
-            logger.error("Não foi possível definir a autenticação do usuário no contexto de segurança", ex);
+            logger.error("Erro ao processar autenticação JWT", ex);
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
+        String authHeader = request.getHeader("Authorization");
 
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+        if (!StringUtils.hasText(authHeader)) {
+            return null;
         }
 
-        return null;
+        authHeader = authHeader.trim();
+
+        if (authHeader.length() < BEARER_PREFIX.length()) {
+            return null;
+        }
+
+        if (!authHeader.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
+            return null;
+        }
+
+        String token = authHeader.substring(BEARER_PREFIX.length()).trim();
+        return StringUtils.hasText(token) ? token : null;
     }
 
-    /**
-     * Carrega o Usuario direto via DAOController e retorna o próprio Usuario,
-     * que implementa UserDetails e contém o id necessário no contexto.
-     */
-    private UserDetails carregarUserDetails(String username) {
+    private Usuario carregarUsuarioComUnidade(String username) {
         try {
             Usuario usuario = daoController
                     .select()
@@ -103,14 +148,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (usuario == null) return null;
 
-            // >>> AQUI: resolve unidade e seta no principal <<<
-            UsuarioUnidade  uu = daoController
+            // resolve unidade ativa
+            UsuarioUnidade uu = daoController
                     .select()
-                    .from(com.gestao.lafemme.api.entity.UsuarioUnidade.class)
+                    .from(UsuarioUnidade.class)
                     .join("usuario")
                     .join("unidade")
                     .where("usuario.id", Condicao.EQUAL, usuario.getId())
-                    .where("unidade.ativo", Condicao.EQUAL, true) // opcional, mas recomendado
+                    .where("unidade.ativo", Condicao.EQUAL, true)
                     .limit(1)
                     .one();
 
@@ -126,4 +171,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
+    private boolean isPublicAuthPath(String path) {
+        return path.equals("/api/v1/auth/login")
+            || path.equals("/api/v1/auth/register")
+            || path.equals("/api/v1/auth/refresh");
+    }
 }
