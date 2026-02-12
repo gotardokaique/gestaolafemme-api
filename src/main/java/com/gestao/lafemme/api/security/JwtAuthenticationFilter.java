@@ -26,7 +26,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final int MAX_TOKEN_LENGTH = 2048;
 
     private final JwtTokenProvider tokenProvider;
@@ -117,24 +116,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-
-        if (!StringUtils.hasText(authHeader)) {
-            return null;
+        // 1️⃣ Tentamos ler do Cookie (Novo padrão)
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("auth_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
         }
+//        String authHeader = request.getHeader("Authorization");
+//        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+//            return authHeader.substring(7);
+//        }
 
-        authHeader = authHeader.trim();
-
-        if (authHeader.length() < BEARER_PREFIX.length()) {
-            return null;
-        }
-
-        if (!authHeader.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
-            return null;
-        }
-
-        String token = authHeader.substring(BEARER_PREFIX.length()).trim();
-        return StringUtils.hasText(token) ? token : null;
+        return null;
     }
 
     private Usuario carregarUsuarioComUnidade(String username) {

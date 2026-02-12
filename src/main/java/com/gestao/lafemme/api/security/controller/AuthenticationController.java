@@ -1,15 +1,16 @@
 package com.gestao.lafemme.api.security.controller;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.security.controller.DTOs.LoginRequestDTO;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,7 +20,6 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/v1/auth")
 public class AuthenticationController {
 
-    @Autowired private SessionService sessionService;
     @Autowired private RegisterUserBO registerBO;
 
 
@@ -31,11 +31,16 @@ public class AuthenticationController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
-        var principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof Usuario user) {
-            sessionService.removeToken(user.getId());
-            return ResponseEntity.ok("Logout executado.");
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário não autenticado.");
+        ResponseCookie cookie = ResponseCookie.from("auth_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0) // Expira o cookie imediatamente
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(Map.of("success", true, "message", "Logout realizado"));
     }
 }

@@ -1,5 +1,6 @@
 package com.gestao.lafemme.api.security.controller;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -7,8 +8,11 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -24,7 +28,6 @@ import com.gestao.lafemme.api.entity.PerfilUsuario;
 import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.entity.UsuarioUnidade;
-import com.gestao.lafemme.api.security.controller.DTOs.LoginResponseDTO;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 
@@ -47,6 +50,12 @@ public class RegisterUserBO {
 
     private static final int MAX_TENTATIVAS_LOGIN = 5;
     private static final long BLOQUEIO_MINUTOS = 2;
+    
+    @Value("${api.security.jwt.expiration-ms}")
+    private Long jwtExpirationMs;
+    
+    @Value("${app.security.require-https:true}")
+    private boolean requireHttps;
 
     // TTL pra não deixar lixo infinito no Redis
     private static final long TENTATIVA_TTL_MINUTOS = 30;
@@ -173,11 +182,21 @@ public class RegisterUserBO {
             redisTemplate.delete(keyIpEmail);
 
             String jwt = tokenService.generateToken(user);
-            sessionService.storeToken(user.getId(), jwt);
+            ResponseCookie cookie = ResponseCookie.from("auth_token", jwt)
+            	    .httpOnly(true)
+            	    .secure(requireHttps) 
+            	    .sameSite(requireHttps ? "Strict" : "Lax")
+            	    .path("/")
+            	    .maxAge(Duration.ofMillis(jwtExpirationMs))
+            	    .build();
 
             logger.info("Login bem-sucedido para {} (IP: {})", email, ip);
+            
+            return ResponseEntity.ok()
+            		.header(HttpHeaders.SET_COOKIE, cookie.toString())
+            		.body(Map.of("success", true, "message", "Login realizado"));
 
-            return ResponseEntity.ok(new LoginResponseDTO(jwt));
+
 
         } catch (BadCredentialsException | UsernameNotFoundException e) {
 

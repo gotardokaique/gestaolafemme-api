@@ -183,16 +183,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Se não setar a env, por padrão não libera ninguém (mais seguro).
         List<String> allowedOrigins = parseAllowedOrigins(allowedOriginsCsv);
 
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
-        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowedHeaders(List.of("Content-Type", "Accept", "Origin", "X-Requested-With"));
         config.setAllowCredentials(true);
 
-        // reduz preflight repetido (opcional, mas útil)
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

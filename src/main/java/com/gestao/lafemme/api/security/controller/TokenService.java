@@ -1,10 +1,13 @@
 package com.gestao.lafemme.api.security.controller;
 
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.WebUtils;
 
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.security.JwtTokenProvider;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Service
@@ -43,30 +46,13 @@ public class TokenService {
     }
 
     public String getTokenFromRequest(HttpServletRequest request) {
-        if (request == null) {
-            return null;
+        if (request == null) return null;
+
+        Cookie cookie = WebUtils.getCookie(request, "auth_token");
+        if (cookie != null && StringUtils.hasText(cookie.getValue())) {
+            String token = cookie.getValue();
+            return token.length() <= MAX_TOKEN_LENGTH ? token : null;
         }
-
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null) {
-            return null;
-        }
-
-        authHeader = authHeader.trim();
-        if (authHeader.length() < BEARER_PREFIX.length()) {
-            return null;
-        }
-
-        if (!authHeader.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
-            return null;
-        }
-
-        String token = authHeader.substring(BEARER_PREFIX.length()).trim();
-
-        if (token.isEmpty() || token.length() > MAX_TOKEN_LENGTH) {
-            return null;
-        }
-
-        return token;
+        return null;
     }
 }
