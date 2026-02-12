@@ -45,9 +45,6 @@ public class RegisterUserBO {
     @Autowired
     private TokenService tokenService;
 
-    @Autowired
-    private SessionService sessionService;
-
     private static final int MAX_TENTATIVAS_LOGIN = 5;
     private static final long BLOQUEIO_MINUTOS = 2;
     
@@ -75,9 +72,6 @@ public class RegisterUserBO {
             this.ultimaTentativa = LocalDateTime.now();
         }
     }
-
-    // Chaves no Redis
-    private static final String LOGIN_ATTEMPT_EMAIL_PREFIX = "login:attempt:email:";
 
     private final UsuarioServiceValidacao usuarioServiceValidacao;
     private final TransactionDB trans;
@@ -230,10 +224,6 @@ public class RegisterUserBO {
         }
     }
 
-    private String keyTentativaEmail(String email) {
-        return LOGIN_ATTEMPT_EMAIL_PREFIX + email;
-    }
-
     private TentativaLogin carregarTentativa(String key) {
         Map<Object, Object> map = redisTemplate.opsForHash().entries(key);
 
@@ -272,12 +262,6 @@ public class RegisterUserBO {
 
         redisTemplate.expire(key, TENTATIVA_TTL_MINUTOS, TimeUnit.MINUTES);
     }
-
-    private void resetTentativa(String key) {
-        redisTemplate.delete(key);
-    }
-
-    // ===================== UNIDADE ATIVA =====================
 
     private Unidade resolverUnidadeAtiva(Long userId) {
         try {
@@ -320,5 +304,4 @@ public class RegisterUserBO {
 
         return request.getRemoteAddr();
     }
-
 }

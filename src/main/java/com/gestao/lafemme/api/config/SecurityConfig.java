@@ -19,7 +19,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -40,26 +39,19 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final DAOController daoController;
 
-    /**
-     * Lista de origins permitidas separadas por vírgula.
-     * Ex: https://gestaolafemme.com.br,https://www.gestaolafemme.com.br,http://localhost:3000
-     */
     @Value("${app.cors.allowed-origins:}")
     private String allowedOriginsCsv;
 
     @Value("${app.security.require-https:true}")
     private boolean requireHttps;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          DAOController daoController) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, DAOController daoController) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.daoController = daoController;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   AuthenticationProvider authenticationProvider) throws Exception {
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -78,7 +70,6 @@ public class SecurityConfig {
 
         http
             .authorizeHttpRequests(auth -> auth
-                // Pré-flight CORS
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
@@ -113,7 +104,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider(PasswordEncoder passwordEncoder) {
-        final String DUMMY_HASH = "$argon2id$v=19$m=65536,t=5,p=2$W6xM2Kftt/BSVv45LwZVfw$zMLxp6E1IhLbu/6x07H+8odCck+ZdOo5t6Jw45hPBM+Bs3/3h3lRGyl5FmUclwRj7+8\n";
+        final String DUMMY_HASH = "$argon2id$v=19$m=65536,t=5,p=2$W6xM2Kftt/BSVv45LwZVfw$zMLxp6E1IhLbu/6x07H+8odCck+ZdOo5t6Jw45hPBM+Bs3/3h3lRGyl5FmUclwRj7+8";
 
         return new AuthenticationProvider() {
 
@@ -124,7 +115,7 @@ public class SecurityConfig {
                         ? authentication.getCredentials().toString()
                         : "";
 
-                if (!StringUtils.hasText(username)) {
+                if (StringUtils.hasText(username) == false) {
                     passwordEncoder.matches(senhaRaw, DUMMY_HASH);
                     throw new BadCredentialsException("Usuário ou senha inválidos.");
                 }
@@ -149,7 +140,7 @@ public class SecurityConfig {
                     throw new BadCredentialsException("Usuário ou senha inválidos.");
                 }
 
-                if (!passwordEncoder.matches(senhaRaw, usuario.getSenha())) {
+                if (passwordEncoder.matches(senhaRaw, usuario.getSenha()) == false) {
                     throw new BadCredentialsException("Usuário ou senha inválidos.");
                 }
 
