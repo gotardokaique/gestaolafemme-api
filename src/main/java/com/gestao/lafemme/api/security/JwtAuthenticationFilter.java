@@ -18,6 +18,7 @@ import com.gestao.lafemme.api.entity.UsuarioUnidade;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -44,6 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        String method = request.getMethod(); // 🟢 Adicionado para identificar o culpado (HEAD)
+
+        // 🟢 CORREÇÃO: Impede que métodos não suportados (como o HEAD do curl -I) 
+        // cheguem nos Controllers e gerem o Erro 500.
+        if ("HEAD".equalsIgnoreCase(method)) {
+            response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            return;
+        }
 
         // 1️⃣ Bypass rotas públicas
         if (isPublicAuthPath(path)) {
@@ -52,7 +61,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-
             // 2️⃣ Se já existe auth no contexto, não sobrescreve
             if (SecurityContextHolder.getContext().getAuthentication() != null) {
                 filterChain.doFilter(request, response);
@@ -85,7 +93,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 6️⃣ Carrega usuário
             Usuario usuario = carregarUsuarioComUnidade(username);
             if (usuario == null) {
                 logger.warn("JWT válido mas usuário não encontrado: {}", username);
@@ -93,7 +100,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 7️⃣ Define autenticação
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             usuario,
@@ -108,7 +114,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception ex) {
-            logger.error("Erro ao processar autenticação JWT", ex);
+            logger.error("Erro na autenticação JWT em {}: {}", path, ex.getMessage());
             SecurityContextHolder.clearContext();
         }
 
@@ -116,19 +122,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
-        // 1️⃣ Tentamos ler do Cookie (Novo padrão)
-        if (request.getCookies() != null) {
-            for (var cookie : request.getCookies()) {
-                if ("auth_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) return null;
+
+        for (var cookie : cookies) {
+            if ("auth_token".equals(cookie.getName())) {
+                String val = cookie.getValue();	
+                return StringUtils.hasText(val) ? val : null;
             }
         }
-//        String authHeader = request.getHeader("Authorization");
-//        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-//            return authHeader.substring(7);
-//        }
-
         return null;
     }
 
