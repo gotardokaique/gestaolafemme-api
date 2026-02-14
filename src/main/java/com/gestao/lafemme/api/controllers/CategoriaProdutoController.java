@@ -22,7 +22,7 @@ public class CategoriaProdutoController {
         this.categoriaService = categoriaService;
     }
 
-    // ===================== CRIAR =====================
+    // ===================== CRIAR =================
 
     @PostMapping
     public ResponseEntity<String> criar(@RequestBody CategoriaProdutoRequestDTO dto) throws Exception {
