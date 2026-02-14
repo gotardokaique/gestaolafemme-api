@@ -1,93 +1,154 @@
-# gestao-la-femme-api
+# 💎 Gestão LaFemme API
 
+API REST desenvolvida com **Spring Boot 3 + Java 21** para gerenciamento completo de produtos, estoque, vendas, fornecedores, usuários e controle operacional, com autenticação JWT, arquitetura modular e suporte a multi-unidade.
 
+---
 
-## Getting started
+## 🚀 Visão Geral
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+A Gestão LaFemme API é uma solução backend robusta e escalável para sistemas de gestão comercial e operacional, oferecendo controle estruturado de dados, segurança e organização modular.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+Principais capacidades:
 
-## Add your files
+- 🔐 Autenticação e autorização via JWT
+- 👤 Gestão de usuários e perfis de acesso
+- 🏬 Suporte a múltiplas unidades (multi-tenant)
+- 📦 Cadastro e gerenciamento de produtos
+- 🗂 Organização por categorias
+- 📊 Controle de estoque
+- 🔄 Movimentações de entrada e saída
+- 🧾 Registro estruturado de vendas
+- 🤝 Gestão de fornecedores
+- 📈 Estrutura preparada para dashboards e relatórios
+- ⚡ Arquitetura preparada para escalabilidade
 
-* [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+---
+
+## 🏗 Stack Tecnológica
+
+- ☕ Java 21  
+- 🌱 Spring Boot 3  
+- 🔐 Spring Security  
+- 🔑 JWT (Bearer Token)  
+- 🐘 PostgreSQL  
+- ⚡ Redis  
+- 🛠 Flyway (versionamento de banco de dados)  
+- 📦 Maven  
+- 🐳 Docker / Docker Compose  
+
+---
+
+## 🧠 Arquitetura
+
+A aplicação segue princípios de:
+
+- Separação clara entre Controller, Service e camada de acesso a dados
+- QueryBuilder customizado para consultas dinâmicas
+- Multi-tenant baseado no contexto do usuário autenticado
+- Uso de DTOs para proteção de entidades
+- Tratamento global de exceções
+- Estrutura modular e organizada para evolução contínua
+
+---
+
+## 📂 Estrutura do Projeto
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/kaiquecgotardo/gestao-la-femme-api.git
-git branch -M main
-git push -uf origin main
+src/main/java/com/gestao/lafemme/api
+│
+├── config/         # Configurações gerais
+├── controllers/    # Endpoints REST
+├── services/       # Regras de negócio
+├── db/             # DAOController, QueryBuilder, TransactionDB
+├── entities/       # Entidades JPA
+├── dtos/           # Objetos de transferência
+├── security/       # Filtros JWT e autenticação
+├── enums/          # Enumerações
+└── exceptions/     # Tratamento global de erros
 ```
 
-## Integrate with your tools
+## 📦 Principais Domínios
 
-* [Set up project integrations](https://gitlab.com/kaiquecgotardo/gestao-la-femme-api/-/settings/integrations)
+### 👤 Usuários
+- Cadastro e autenticação
+- Controle de permissões
+- Associação à unidade
 
-## Collaborate with your team
+### 📦 Produtos
+- Cadastro completo
+- Status ativo/inativo
+- Associação a categorias
+- Filtros dinâmicos
 
-* [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### 📊 Estoque
+- Controle de quantidade
+- Movimentações registradas
+- Histórico por produto
 
-## Test and Deploy
+### 🧾 Vendas
+- Registro estruturado
+- Associação a múltiplos produtos
+- Atualização automática de estoque
 
-Use the built-in continuous integration in GitLab.
+### 🤝 Fornecedores
+- Cadastro e manutenção
+- Status ativo/inativo
+- Filtros personalizados
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+---
 
-***
+## 🛠 Configuração Local
 
-# Editing this README
+### 1️⃣ Criar banco
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```sql
+CREATE DATABASE gestao_lafemme;
+```
 
-## Suggestions for a good README
+### 2️⃣ Configurar `application.properties`
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/gestao_lafemme
+spring.datasource.username=postgres
+spring.datasource.password=senha
 
-## Name
-Choose a self-explaining name for your project.
+spring.jpa.hibernate.ddl-auto=validate
+spring.flyway.enabled=true
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+spring.redis.host=localhost
+spring.redis.port=6379
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+jwt.secret=SUA_CHAVE_SECRETA
+jwt.expiration=86400000
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## 🔒 Segurança
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+- Autenticação baseada em JWT
+- Isolamento por unidade (multi-tenant)
+- Uso de DTOs para evitar exposição de entidades
+- Tratamento global de exceções
+- Estrutura preparada para CORS e HTTPS
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+---
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+## 📈 Escalabilidade
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+A arquitetura permite:
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+- Integração com gateways de pagamento
+- Ampliação de relatórios e métricas
+- Evolução modular
+- Integração com front-end React / Next.js
+- Estratégias de cache com Redis
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+---
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## 📜 License
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+Proprietary – All Rights Reserved.
 
-## License
-For open source projects, say how it is licensed.
+This software is publicly visible for evaluation and portfolio purposes only.  
+Unauthorized use, modification, distribution, or deployment is strictly prohibited.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+See the `LICENSE` file for full legal terms.
