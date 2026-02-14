@@ -95,33 +95,6 @@ src/main/java/com/gestao/lafemme/api
 - Status ativo/inativo
 - Filtros personalizados
 
----
-
-## 🛠 Configuração Local
-
-### 1️⃣ Criar banco
-
-```sql
-CREATE DATABASE gestao_lafemme;
-```
-
-### 2️⃣ Configurar `application.properties`
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/gestao_lafemme
-spring.datasource.username=postgres
-spring.datasource.password=senha
-
-spring.jpa.hibernate.ddl-auto=validate
-spring.flyway.enabled=true
-
-spring.redis.host=localhost
-spring.redis.port=6379
-
-jwt.secret=SUA_CHAVE_SECRETA
-jwt.expiration=86400000
-```
-
 ## 🔒 Segurança
 
 - Autenticação baseada em JWT
