@@ -607,25 +607,28 @@ public class QueryBuilder {
             );
         }
 
-        @SuppressWarnings("unchecked")
-        Class<T> clazz = (Class<T>) entityClass;
-
         Object pk = (id instanceof Long) ? id : Long.valueOf(id.longValue());
 
-        T entity = entityManager.find(clazz, pk);
+        // Adiciona filtro de ID na query JPQL — respeita where-clauses existentes
+        this.where("id", Condicao.EQUAL, pk);
 
-        if (entity == null) {
+        try {
+            return this.one();
+        } catch (NotFoundException e) {
             String entidade = entityClass.getSimpleName();
-
             log.warn("{} não encontrada para o id {}", entidade, id);
-
-            // EXATAMENTE como no one()
+            throw new EntityNotFoundException(
+                entidade + " não encontrada para o id " + id
+            );
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            String entidade = entityClass.getSimpleName();
+            log.warn("{} não encontrada para o id {}", entidade, id);
             throw new EntityNotFoundException(
                 entidade + " não encontrada para o id " + id
             );
         }
-
-        return entity;
     }
 
 }

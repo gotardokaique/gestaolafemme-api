@@ -16,11 +16,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
+import io.jsonwebtoken.security.SecurityException;
 
 @Component
 public class JwtTokenProvider {
@@ -55,13 +54,10 @@ public class JwtTokenProvider {
         String username;
 
         if (principal instanceof UserDetails userDetails) {
-        	
             username = userDetails.getUsername();
         } else if (principal != null) {
-        	
             username = principal.toString();
         } else {
-        	
             throw new IllegalArgumentException("Principal nulo ao gerar token JWT");
         }
 
@@ -70,17 +66,18 @@ public class JwtTokenProvider {
 
     /**
      * Gera token a partir do username (email). Ponto único de geração.
+     * Migrado para JJWT 0.12.x API (non-deprecated).
      */
     public String generateTokenFromUsername(String username) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
-                .setId(UUID.randomUUID().toString()) 
-                .setSubject(username)                   // sub
-                .setIssuedAt(now)                       // iat
-                .setExpiration(expiryDate)              // exp
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .id(UUID.randomUUID().toString())
+                .subject(username)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey(), Jwts.SIG.HS512)
                 .compact();
     }
 
@@ -93,7 +90,7 @@ public class JwtTokenProvider {
         try {
             parseClaims(authToken);
             return true;
-        } catch (SignatureException ex) {
+        } catch (SecurityException ex) {
             logger.debug("Assinatura JWT inválida");
         } catch (MalformedJwtException ex) {
             logger.debug("Token JWT malformado");
@@ -104,18 +101,17 @@ public class JwtTokenProvider {
         } catch (IllegalArgumentException ex) {
             logger.debug("Token JWT vazio ou nulo");
         } catch (Exception ex) {
-            // fallback para qualquer coisa inesperada
             logger.error("Erro inesperado ao validar token JWT", ex);
         }
         return false;
     }
 
     private Claims parseClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .setAllowedClockSkewSeconds(ALLOWED_CLOCK_SKEW_SECONDS)
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .clockSkewSeconds(ALLOWED_CLOCK_SKEW_SECONDS)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

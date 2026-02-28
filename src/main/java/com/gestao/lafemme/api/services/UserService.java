@@ -22,6 +22,7 @@ import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.entity.UsuarioUnidade;
 import com.gestao.lafemme.api.security.controller.UsuarioRepository;
+import com.gestao.lafemme.api.services.exceptions.BusinessException;
 
 @Service
 public class UserService {
@@ -71,6 +72,13 @@ public class UserService {
      */
     @Transactional
     public CriarNovoUsuarioResponseDTO criarNovoUsuario(CriarNovoUsuarioRequestDTO request) {
+        // Verificação de autorização: apenas admins podem criar usuários
+        Usuario admin = UserContext.getUsuarioAutenticado();
+        PerfilUsuario perfilAdmin = admin.getPerfilUsuario();
+        if (perfilAdmin == null || !"ADMIN".equalsIgnoreCase(perfilAdmin.getNome())) {
+            throw new BusinessException("Apenas administradores podem criar novos usuários.");
+        }
+
         String email = request.email().trim().toLowerCase();
         String nome = request.nome().trim();
         

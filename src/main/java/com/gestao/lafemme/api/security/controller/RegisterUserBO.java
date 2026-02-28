@@ -249,12 +249,8 @@ public class RegisterUserBO {
 
     private String extrairIpCliente(jakarta.servlet.http.HttpServletRequest request) {
         String remoteAddr = request.getRemoteAddr();
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
 
         Set<String> trustedProxies = parseTrustedProxies();
-
-        logger.warn("[PROXY-DEBUG] remoteAddr={} | X-Forwarded-For={} | trustedProxies={} | isTrusted={}",
-                remoteAddr, xForwardedFor, trustedProxies, trustedProxies.contains(remoteAddr));
 
         if (trustedProxies.contains(remoteAddr)) {
             String forwarded = request.getHeader("X-Forwarded-For");

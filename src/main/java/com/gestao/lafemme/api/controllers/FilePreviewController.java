@@ -111,7 +111,10 @@ public class FilePreviewController {
             Anexo anexo = dao.select()
                     .from(Anexo.class)
                     .join("usuario")
+                    .join("usuario.unidades")
+                    .join("usuario.unidades.unidade")
                     .where("usuario.id", Condicao.EQUAL, id)
+                    .where("usuario.unidades.unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                     .where("tipo", Condicao.EQUAL, TipoAnexo.FOTO_PERFIL_USUARIO)
                     .one();
 
@@ -132,6 +135,10 @@ public class FilePreviewController {
     @GetMapping("/unidades/{id}")
     public ResponseEntity<?> getFotoUnidade(@PathVariable Long id) {
         try {
+            if (!UserContext.isUsuarioDaUnidade(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
             Anexo anexo = dao.select()
                     .from(Anexo.class)
                     .join("unidade")
@@ -166,6 +173,6 @@ public class FilePreviewController {
                 .join("unidade")
                 .where("id", Condicao.EQUAL, id)
                 .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
-                .id(id);
+                .one();
     }
 }

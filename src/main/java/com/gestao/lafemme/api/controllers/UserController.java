@@ -17,6 +17,7 @@ import com.gestao.lafemme.api.controllers.dto.UserMeResponseDTO;
 import com.gestao.lafemme.api.controllers.dto.UsuarioUnidadeDTO;
 import com.gestao.lafemme.api.services.UserService;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -44,10 +45,14 @@ public class UserController {
      */
     @PostMapping("/criar")
     public ResponseEntity<ApiResponse<CriarNovoUsuarioResponseDTO>> criarNovoUsuario(
-            @RequestBody CriarNovoUsuarioRequestDTO request) {
+            @RequestBody @Valid CriarNovoUsuarioRequestDTO request) {
         try {
             CriarNovoUsuarioResponseDTO response = userService.criarNovoUsuario(request);
+            // Headers anti-cache: senha temporária NÃO pode ser cacheada por proxies/CDN
             return ResponseEntity.status(HttpStatus.CREATED)
+                    .header("Cache-Control", "no-store, no-cache, must-revalidate")
+                    .header("Pragma", "no-cache")
+                    .header("Expires", "0")
                     .body(new ApiResponse<>(true, "Usuário criado com sucesso!", response));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
