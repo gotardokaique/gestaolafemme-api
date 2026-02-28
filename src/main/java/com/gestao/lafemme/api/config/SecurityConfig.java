@@ -144,11 +144,8 @@ public class SecurityConfig {
                     throw new BadCredentialsException("Usuário ou senha inválidos.");
                 }
 
-                try {
-                    if (!usuario.isAccountNonLocked() || !usuario.isEnabled()) {
-                        throw new BadCredentialsException("Usuário ou senha inválidos.");
-                    }
-                } catch (NoSuchMethodError | Exception ignored) {
+                if (!usuario.isAccountNonLocked() || !usuario.isEnabled()) {
+                    throw new BadCredentialsException("Usuário ou senha inválidos.");
                 }
 
                 return new UsernamePasswordAuthenticationToken(

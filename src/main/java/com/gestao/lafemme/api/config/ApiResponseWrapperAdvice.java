@@ -28,7 +28,6 @@ public class ApiResponseWrapperAdvice implements ResponseBodyAdvice<Object> {
                                  ServerHttpRequest request,
                                  ServerHttpResponse response) {
 
-        // já está envelopado
         if (body instanceof ApiResponse<?>) return body;
 
         if (selectedConverterType == StringHttpMessageConverter.class) {
@@ -40,7 +39,6 @@ public class ApiResponseWrapperAdvice implements ResponseBodyAdvice<Object> {
         return ApiResponse.ok(body);
     }
 
-    // escape básico pra JSON string
     private String toJsonString(String s) {
         if (s == null) return "null";
         String escaped = s.replace("\\", "\\\\").replace("\"", "\\\"");

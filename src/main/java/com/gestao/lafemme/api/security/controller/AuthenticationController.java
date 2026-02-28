@@ -35,7 +35,7 @@ public class AuthenticationController {
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(0) // Expira o cookie imediatamente
+                .maxAge(0) // Expira cookie
                 .sameSite("Strict")
                 .build();
 

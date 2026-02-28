@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -14,16 +16,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Logger de queries JPQL para ambiente de desenvolvimento.
+ * 
+ * SEGURANÇA: Este componente só é instanciado quando o profile "dev" está ativo.
+ * Em produção, o bean não existe e as chamadas a logSql() são no-ops.
+ */
+@Component
+@Profile("dev")
 public final class DevSqlLogger {
 
     private static final Logger log = LoggerFactory.getLogger(DevSqlLogger.class);
 
     private static boolean developerMode = false;
 
-    // pacote base das entidades
+    private static boolean active = false;
+
     private static final String ENTITY_BASE_PACKAGE = "com.api.cotacao.entity";
 
-    // cache de mapeamentos por nome de entidade JPQL (ex: "CotacaoCafeEntity")
     private static final Map<String, EntityMapping> MAPPING_CACHE = new ConcurrentHashMap<>();
 
     // ANSI colors
@@ -32,26 +42,26 @@ public final class DevSqlLogger {
     private static final String YELLOW = "\u001B[33m";
     private static final String CYAN   = "\u001B[36m";
 
-    private DevSqlLogger() {}
+    public DevSqlLogger() {
+        active = true;
+        log.info("[DEV] DevSqlLogger ativado — logging de queries JPQL habilitado.");
+    }
 
     public static void setDeveloperMode(boolean enabled) {
         developerMode = enabled;
     }
 
     public static void logSql(String jpql, List<Object> params) {
-        if (!developerMode || !log.isInfoEnabled() || jpql == null) {
+        if (!active || !developerMode || !log.isInfoEnabled() || jpql == null) {
             return;
         }
 
         String caller = resolveCaller();
 
-        // 1) JPQL com parâmetros embutidos (sem formatar ainda)
         String bound = bindParams(jpql, params);
 
-        // 2) SELECT (visão dev) = JPQL formatado
         String jpqlPretty = formatSqlPretty(bound);
 
-        // 3) SELECT-BD (se der pra mapear tabela/colunas)
         String sqlDbPretty = null;
         String sqlDbRaw = toDatabaseNames(bound);
         if (sqlDbRaw != null) {
@@ -121,7 +131,6 @@ public final class DevSqlLogger {
         return "unknown";
     }
 
-    // Embute os parâmetros na JPQL (sem formatar ainda)
     private static String bindParams(String jpql, List<Object> params) {
         if (jpql == null) {
             return null;
@@ -132,7 +141,6 @@ public final class DevSqlLogger {
 
         String resolved = jpql;
 
-        // de trás pra frente pra não zoar ?10 com ?1
         for (int i = params.size(); i >= 1; i--) {
             Object value = params.get(i - 1);
             String rendered;
@@ -155,7 +163,6 @@ public final class DevSqlLogger {
         return resolved;
     }
 
-    // Formata SQL/JPQL em múltiplas linhas
     private static String formatSqlPretty(String sqlRaw) {
         if (sqlRaw == null || sqlRaw.isBlank()) {
             return sqlRaw;
@@ -177,8 +184,6 @@ public final class DevSqlLogger {
         return s.strip();
     }
 
-    // Converte entity/fields -> tabela/colunas usando @Table/@Column
-    // Se não conseguir mapear, retorna null (não mostra SELECT-BD)
     private static String toDatabaseNames(String rawWithParams) {
         if (rawWithParams == null) {
             return null;
@@ -198,8 +203,8 @@ public final class DevSqlLogger {
             return null;
         }
 
-        String entityName = parts[0];  // ex: CotacaoCafeEntity
-        String alias      = parts[1];  // ex: c
+        String entityName = parts[0];
+        String alias      = parts[1];
 
         EntityMapping mapping = resolveMapping(entityName);
         if (mapping == null) {

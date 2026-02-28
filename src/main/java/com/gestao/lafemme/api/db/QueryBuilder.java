@@ -422,12 +422,23 @@ public class QueryBuilder {
         return result;
     }
 
+    // [Item 7] Regex para validação de nomes de campos JPQL — previne JPQL injection
+    private static final java.util.regex.Pattern SAFE_FIELD_PATTERN = java.util.regex.Pattern
+            .compile("^[a-zA-Z][a-zA-Z0-9_.]{0,99}$");
+
     private String qualifyField(String campo) {
         if (campo == null || campo.isBlank()) {
             throw new IllegalArgumentException("Campo JPQL não pode ser nulo/vazio");
         }
 
         String trimmed = campo.trim();
+
+        // Validação de segurança: bloqueia caracteres especiais que poderiam permitir JPQL injection
+        if (!SAFE_FIELD_PATTERN.matcher(trimmed).matches()) {
+            throw new IllegalArgumentException(
+                    "Campo JPQL contém caracteres inválidos: '" + trimmed + "'. "
+                    + "Apenas letras, números, underscore e ponto são permitidos.");
+        }
 
         if (trimmed.contains(".")) {
             return trimmed;
