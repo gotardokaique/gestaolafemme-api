@@ -88,7 +88,7 @@ public class UserController {
      * @return Response de sucesso ou erro
      */
     @PostMapping("/trocar-senha")
-    public ResponseEntity<ApiResponse<Void>> trocarSenha(@RequestBody TrocarSenhaRequestDTO request) {
+    public ResponseEntity<ApiResponse<Void>> trocarSenha(@RequestBody @Valid TrocarSenhaRequestDTO request) {
         try {
             userService.trocarSenhaObrigatoria(request);
             return ResponseEntity.ok(new ApiResponse<>(true, "Senha alterada com sucesso!", null));

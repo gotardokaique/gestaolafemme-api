@@ -9,10 +9,13 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gestao.lafemme.api.controllers.dto.ApiResponse;
 
 @ControllerAdvice
 public class ApiResponseWrapperAdvice implements ResponseBodyAdvice<Object> {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public boolean supports(MethodParameter returnType,
@@ -32,16 +35,14 @@ public class ApiResponseWrapperAdvice implements ResponseBodyAdvice<Object> {
 
         if (selectedConverterType == StringHttpMessageConverter.class) {
             response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-            String msg = (body == null ? null : body.toString());
-            return "{\"success\":true,\"message\":" + toJsonString(msg) + "}";
+            String msg = (body == null ? "" : body.toString());
+            try {
+                return "{\"success\":true,\"message\":" + objectMapper.writeValueAsString(msg) + "}";
+            } catch (Exception e) {
+                return "{\"success\":false,\"message\":\"Erro ao processar resposta\"}";
+            }
         }
 
         return ApiResponse.ok(body);
-    }
-
-    private String toJsonString(String s) {
-        if (s == null) return "null";
-        String escaped = s.replace("\\", "\\\\").replace("\"", "\\\"");
-        return "\"" + escaped + "\"";
     }
 }

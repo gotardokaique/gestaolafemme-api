@@ -40,11 +40,9 @@ public class VendaService {
 
         Produto produto = buscarProduto(dto.produtoId());
         
-        // Se o valorTotal não vier do front, calculamos (opcional, dependendo da regra)
-        BigDecimal valorTotal = dto.valorTotal();
-        if (valorTotal == null || valorTotal.compareTo(BigDecimal.ZERO) <= 0) {
-            valorTotal = produto.getValorVenda().multiply(new BigDecimal(dto.quantidade()));
-        }
+        // SEURANÇA: NUNCA confiar no valor total vindo do cliente. Calcular sempre no servidor.
+        BigDecimal valorTotal = produto.getValorVenda().multiply(new BigDecimal(dto.quantidade()));
+
 
         Venda venda = new Venda();
         venda.setDataVenda(dto.dataVenda() != null ? dto.dataVenda() : new Date());
