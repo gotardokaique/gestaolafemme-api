@@ -58,21 +58,12 @@ public class UserService {
 
             return UserMeResponseDTO.from(usuario);
         } catch (Exception e) {
-            // Fallback se falhar ao recarregar, tenta usar o do contexto direto
             return UserMeResponseDTO.from(UserContext.getUsuario());
         }
     }
 
-    /**
-     * Cria um novo usuário com senha temporária aleatória de 8 dígitos.
-     * O usuário criado terá a flag trocarSenha=true, forçando a troca no primeiro login.
-     * 
-     * @param request DTO contendo nome e email do novo usuário
-     * @return DTO com email e senha temporária gerada
-     */
     @Transactional
     public CriarNovoUsuarioResponseDTO criarNovoUsuario(CriarNovoUsuarioRequestDTO request) {
-        // Verificação de autorização: apenas admins podem criar usuários
         Usuario admin = UserContext.getUsuarioAutenticado();
         PerfilUsuario perfilAdmin = admin.getPerfilUsuario();
         if (perfilAdmin == null || !"ADMIN".equalsIgnoreCase(perfilAdmin.getNome())) {
@@ -82,12 +73,10 @@ public class UserService {
         String email = request.email().trim().toLowerCase();
         String nome = request.nome().trim();
         
-        // Validações básicas
         if (email.isEmpty() || nome.isEmpty()) {
             throw new IllegalArgumentException("Nome e email são obrigatórios");
         }
         
-        // Verifica se email já existe
         if (usuarioRepository.findByEmail(email) != null) {
             throw new IllegalArgumentException("Email já cadastrado no sistema");
         }
@@ -129,14 +118,9 @@ public class UserService {
         return new CriarNovoUsuarioResponseDTO(email, senhaTemporaria, mensagem);
     }
     
-    /**
-     * Gera uma senha temporária aleatória de 8 dígitos alfanuméricos.
-     * 
-     * @return String com 8 caracteres aleatórios
-     */
     private String gerarSenhaTemporaria() {
         String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        StringBuilder senha = new StringBuilder(8);
+        StringBuilder senha = new StringBuilder(16);
         
         for (int i = 0; i < 8; i++) {
             int index = secureRandom.nextInt(caracteres.length());
@@ -146,11 +130,6 @@ public class UserService {
         return senha.toString();
     }
 
-    /**
-     * Verifica se o usuário logado precisa trocar a senha.
-     * 
-     * @return DTO indicando se precisa trocar senha
-     */
     @Transactional(readOnly = true)
     public CheckTrocarSenhaResponseDTO checkTrocarSenha() {
         Long usuarioId = UserContext.getIdUsuario();
@@ -166,34 +145,23 @@ public class UserService {
         return new CheckTrocarSenhaResponseDTO(usuario.isTrocarSenha());
     }
 
-    /**
-     * Troca a senha do usuário logado de forma obrigatória.
-     * Valida senha atual, força senha forte e atualiza flag trocarSenha.
-     * 
-     * @param request DTO com senha atual, nova senha e confirmação
-     */
     @Transactional
     public void trocarSenhaObrigatoria(TrocarSenhaRequestDTO request) {
         Long usuarioId = UserContext.getIdUsuario();
-        
-        // Busca o usuário logado
         Usuario usuario = trans.selectById(Usuario.class, usuarioId);
         
         if (usuario == null) {
             throw new IllegalStateException("Usuário não encontrado");
         }
         
-        // Validação 1: Verifica se a senha atual está correta
         if (!passwordEncoder.matches(request.senhaAtual(), usuario.getSenha())) {
             throw new IllegalArgumentException("Senha atual incorreta");
         }
         
-        // Validação 2: Verifica se as senhas novas coincidem
         if (!request.senhaNova().equals(request.senhaNovaConfirmacao())) {
             throw new IllegalArgumentException("As senhas novas não coincidem");
         }
         
-        // Validação 3: Verifica se a senha nova é forte
         if (!validarSenhaForte(request.senhaNova())) {
             throw new IllegalArgumentException(
                 "Senha fraca. A senha deve ter no mínimo 8 caracteres, " +
@@ -201,12 +169,10 @@ public class UserService {
             );
         }
         
-        // Validação 4: Verifica se a senha nova é diferente da atual
         if (passwordEncoder.matches(request.senhaNova(), usuario.getSenha())) {
             throw new IllegalArgumentException("A nova senha deve ser diferente da senha atual");
         }
         
-        // Atualiza a senha
         usuario.setSenha(passwordEncoder.encode(request.senhaNova()));
         usuario.setTrocarSenha(false);
         usuario.setSenhaTrocadaEm(new java.util.Date());
@@ -214,17 +180,6 @@ public class UserService {
         trans.update(usuario);
     }
 
-    /**
-     * Valida se a senha é forte seguindo os critérios:
-     * - Mínimo 8 caracteres
-     * - Pelo menos uma letra maiúscula
-     * - Pelo menos uma letra minúscula
-     * - Pelo menos um número
-     * - Não pode ter 3 ou mais caracteres repetidos consecutivos
-     * 
-     * @param senha Senha a ser validada
-     * @return true se a senha é forte, false caso contrário
-     */
     private boolean validarSenhaForte(String senha) {
         if (senha == null || senha.length() < 8) {
             return false;
@@ -246,16 +201,10 @@ public class UserService {
         return true;
     }
 
-    /**
-     * Lista todos os usuários da mesma unidade do usuário logado.
-     * 
-     * @return Lista de usuários com informações de perfil
-     */
     @Transactional(readOnly = true)
     public java.util.List<UsuarioUnidadeDTO> listarUsuariosDaUnidade() {
         Long unidadeId = UserContext.getIdUnidade();
         
-        // Busca todos os vínculos de usuário-unidade da unidade atual
         java.util.List<UsuarioUnidade> vinculos = dao.select()
                 .from(UsuarioUnidade.class)
                 .join("usuario")
@@ -264,7 +213,6 @@ public class UserService {
                 .where("unidade.id", Condicao.EQUAL, unidadeId)
                 .list();
         
-        // Mapeia para DTO
         return vinculos.stream()
                 .map(vinculo -> {
                     Usuario usuario = vinculo.getUsuario();

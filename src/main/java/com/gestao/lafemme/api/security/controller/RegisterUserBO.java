@@ -32,6 +32,8 @@ import com.gestao.lafemme.api.entity.UsuarioUnidade;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @Component
 public class RegisterUserBO {
 
@@ -91,7 +93,7 @@ public class RegisterUserBO {
         return true;
     }
 
-    public Boolean isEmailJaRegistrado(String email) {
+    public Boolean isEmailJaRegistrado(String email) throws Exception {
         return usuarioServiceValidacao.validarEmailJaCadastrado(email);
     }
 
@@ -111,7 +113,7 @@ public class RegisterUserBO {
         return isUserCadastrado;
     }
 
-    public ResponseEntity<?> processarLogin(String emailRaw, String senha, jakarta.servlet.http.HttpServletRequest request) {
+    public ResponseEntity<?> processarLogin(String emailRaw, String senha, HttpServletRequest request) {
 
         String email = (emailRaw == null ? "" : emailRaw).trim().toLowerCase();
 

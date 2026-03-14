@@ -1,34 +1,48 @@
 package com.gestao.lafemme.api.security.controller;
 
-import java.util.List;
-
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import com.gestao.lafemme.api.db.Condicao;
+import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.db.TransactionDB;
+import com.gestao.lafemme.api.entity.Usuario;
+import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 
 @Service
-public class UsuarioServiceValidacao {
+public class UsuarioServiceValidacao implements UserDetailsService{
 
     private final TransactionDB trans;
+    private final DAOController dao;
 
-    public UsuarioServiceValidacao(TransactionDB trans) {
+    public UsuarioServiceValidacao (TransactionDB trans, DAOController dao) {
         this.trans = trans;
+        this.dao = dao;
     }
-	
-	public Boolean validarEmailJaCadastrado (String email) {
-        String jpql = 
-                "   select usu                   " +
-                "   FROM Usuario usu             " +
-                "   WHERE 1 = 1                  " +
-                "   AND usu.usu_email ='" + email + "'";
-		 
-	        List<?> lista = trans.select(jpql);
-	        
-	        if (lista.isEmpty() == false) {
-	        	return true;
-	        }	
 
-		return false;
-	}
-
+    public Boolean validarEmailJaCadastrado(String email) throws Exception {
+        try {
+            Usuario user = dao.select()
+                    .from(Usuario.class)
+                    .where("email", Condicao.EQUAL, email)
+                    .one();
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+    
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        try {
+            return dao.select()
+                    .from(Usuario.class)
+                    .where("email", Condicao.EQUAL, email)
+                    .one();
+        } catch (Exception e) {
+            throw new UsernameNotFoundException("Usuário não encontrado: " + email);
+        }
+    }
 }
