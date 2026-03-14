@@ -153,7 +153,7 @@ public class ConfiguracaoService {
             trans.insert(config);
         }
 
-        return new EmailConfigResponseDTO(config.getEmailRemetente());
+        return new EmailConfigResponseDTO(config.getEmailRemetente(), true);
     }
 
     @Transactional(readOnly = true)
@@ -166,6 +166,25 @@ public class ConfiguracaoService {
 
         Configuracao config = configs.isEmpty() ? null : configs.get(0);
         String emailRemetente = (config != null) ? config.getEmailRemetente() : null;
-        return new EmailConfigResponseDTO(emailRemetente);
+        boolean hasSenhaApp = (config != null && config.getEmailSenhaApp() != null && !config.getEmailSenhaApp().isEmpty());
+        return new EmailConfigResponseDTO(emailRemetente, hasSenhaApp);
+    }
+
+    @Transactional
+    public void deletarEmailConfig() throws Exception {
+        Long userId = UserContext.getIdUsuario();
+        try {
+            Configuracao config = dao.select()
+                    .from(Configuracao.class)
+                    .where("usuario.id", Condicao.EQUAL, userId)
+                    .one();
+                    
+            config.setEmailRemetente(null);
+            config.setEmailSenhaApp(null);
+            config.setUpdatedAt(new Date());
+            trans.update(config);
+        } catch (EntityNotFoundException e) {
+            return;
+        }
     }
 }

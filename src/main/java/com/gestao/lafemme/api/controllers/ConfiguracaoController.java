@@ -56,4 +56,10 @@ public class ConfiguracaoController {
         EmailConfigResponseDTO response = configuracaoService.salvarEmailConfig(request);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/email")
+    public ResponseEntity<Void> deletarEmailConfig() throws Exception {
+        configuracaoService.deletarEmailConfig();
+        return ResponseEntity.noContent().build();
+    }
 }
