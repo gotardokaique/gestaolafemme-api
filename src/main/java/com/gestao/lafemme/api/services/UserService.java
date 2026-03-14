@@ -124,8 +124,9 @@ public class UserService {
                 </div>
                 """.formatted(nome, email, senhaTemporaria);
 
+        
         try {
-            emailBO.criar()
+            emailBO.criar()	
                    .remetente(admin.getId())
                    .destinatario(email)
                    .mensagem("Suas credenciais de acesso - Lá Femme", corpoHtml)
