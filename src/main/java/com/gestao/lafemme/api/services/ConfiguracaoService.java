@@ -125,6 +125,10 @@ public class ConfiguracaoService {
     public EmailConfigResponseDTO salvarEmailConfig(EmailConfigRequestDTO request) throws Exception {
         Long userId = UserContext.getIdUsuario();
         
+        if (request.getEmailSenhaApp() != null && request.getEmailSenhaApp().length() > 50) {
+            throw new IllegalArgumentException("Senha de app excessivamente longa");
+        }
+        
         String hash = encryptUtils.encrypt(16, request.getEmailSenhaApp());
         
         Configuracao config;
