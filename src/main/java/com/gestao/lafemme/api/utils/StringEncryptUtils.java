@@ -177,4 +177,12 @@ public class StringEncryptUtils {
             throw new RuntimeException("Hashing error: " + algorithm, e);
         }
     }
+
+	public void encrypt(int size, Long valor) {
+		encrypt(2, valor.toString());		
+	}
+	
+	public void encrypt(int size, Integer valor) {
+		encrypt(2, valor.toString());		
+	}
 }

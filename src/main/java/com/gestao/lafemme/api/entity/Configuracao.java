@@ -42,6 +42,12 @@ public class Configuracao implements Serializable {
     @Column(name = "conf_created_at", nullable = false, updatable = false)
     private Date createdAt;
 
+    @Column(name = "conf_email_remetente")
+    private String emailRemetente;
+
+    @Column(name = "conf_email_senha_app")
+    private String emailSenhaApp;
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "conf_updated_at")
     private Date updatedAt;
@@ -102,5 +108,21 @@ public class Configuracao implements Serializable {
 
     public void setUpdatedAt(Date updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getEmailRemetente() {
+        return emailRemetente;
+    }
+
+    public void setEmailRemetente(String emailRemetente) {
+        this.emailRemetente = emailRemetente;
+    }
+
+    public String getEmailSenhaApp() {
+        return emailSenhaApp;
+    }
+
+    public void setEmailSenhaApp(String emailSenhaApp) {
+        this.emailSenhaApp = emailSenhaApp;
     }
 }

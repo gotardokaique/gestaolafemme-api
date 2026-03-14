@@ -4,8 +4,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.gestao.lafemme.api.controllers.dto.EmailConfigRequestDTO;
+import com.gestao.lafemme.api.controllers.dto.EmailConfigResponseDTO;
 
 import com.gestao.lafemme.api.context.UserContext;
 import com.gestao.lafemme.api.db.Condicao;
@@ -115,5 +119,53 @@ public class ConfiguracaoService {
         } catch (EntityNotFoundException  e) {
             return;
         }
+    }
+
+    @Transactional
+    public EmailConfigResponseDTO salvarEmailConfig(EmailConfigRequestDTO request) throws Exception {
+        Long userId = UserContext.getIdUsuario();
+        
+        String hash = encryptUtils.encrypt(16, request.getEmailSenhaApp());
+        
+        Configuracao config;
+        try {
+            config = dao.select()
+                    .from(Configuracao.class)
+                    .where("usuario.id", Condicao.EQUAL, userId)
+                    .one();
+
+            config.setEmailRemetente(request.getEmailRemetente());
+            config.setEmailSenhaApp(hash);
+            config.setUpdatedAt(new Date());
+            trans.update(config);
+
+        } catch (EntityNotFoundException e) {
+            config = new Configuracao();
+            Usuario usuario = trans.selectById(Usuario.class, userId);
+            if (usuario == null) {
+                throw new IllegalStateException("Usuário não encontrado");
+            }
+            config.setUsuario(usuario);
+            // Garante campo obrigatório existente
+            config.setApiToken("");
+            config.setEmailRemetente(request.getEmailRemetente());
+            config.setEmailSenhaApp(hash);
+            trans.insert(config);
+        }
+
+        return new EmailConfigResponseDTO(config.getEmailRemetente());
+    }
+
+    @Transactional(readOnly = true)
+    public EmailConfigResponseDTO buscarEmailConfig() {
+        Long userId = UserContext.getIdUsuario();
+        List<Configuracao> configs = dao.select()
+                .from(Configuracao.class)
+                .where("usuario.id", Condicao.EQUAL, userId)
+                .list();
+
+        Configuracao config = configs.isEmpty() ? null : configs.get(0);
+        String emailRemetente = (config != null) ? config.getEmailRemetente() : null;
+        return new EmailConfigResponseDTO(emailRemetente);
     }
 }
