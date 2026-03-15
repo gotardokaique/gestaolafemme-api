@@ -4,6 +4,7 @@ import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,6 +14,7 @@ import com.sdk.mpoauth.model.MercadoPagoTokenResponse;
 import com.sdk.mpoauth.service.MercadoPagoOAuthService;
 
 @RestController
+@RequestMapping("/mp")
 public class MercadoPagoCallbackController extends MercadoPagoOAuthController {
 
     private final MercadoPagoOAuthService oAuthService;

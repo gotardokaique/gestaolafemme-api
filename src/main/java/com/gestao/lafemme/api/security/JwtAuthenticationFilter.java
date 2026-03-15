@@ -54,21 +54,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 //            return;
 //        }
 
-        // 1️⃣ Bypass rotas públicas
-        if (isPublicAuthPath(path)) {
+        // 1️⃣ Extrai token
+        String jwt = getJwtFromRequest(request);
+
+        // 2️⃣ Se for rota pública e não tiver token, bypassa direto
+        if (isPublicAuthPath(path) && !StringUtils.hasText(jwt)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            // 2️⃣ Se já existe auth no contexto, não sobrescreve
+            // 3️⃣ Se já existe auth no contexto, não sobrescreve
             if (SecurityContextHolder.getContext().getAuthentication() != null) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            // 3️⃣ Extrai token
-            String jwt = getJwtFromRequest(request);
             if (!StringUtils.hasText(jwt)) {
                 filterChain.doFilter(request, response);
                 return;
