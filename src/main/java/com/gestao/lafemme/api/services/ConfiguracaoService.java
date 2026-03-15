@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.gestao.lafemme.api.context.UserContext;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigResponseDTO;
+import com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigResponseDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.db.TransactionDB;
@@ -232,5 +233,17 @@ public class ConfiguracaoService {
         } else {
             trans.update(config);
         }
+    }
+    @Transactional(readOnly = true)
+    public MercadoPagoConfigResponseDTO buscarMercadoPagoConfig() {
+        Long userId = UserContext.getIdUsuario();
+        List<Configuracao> configs = dao.select()
+                .from(Configuracao.class)
+                .where("usuario.id", Condicao.EQUAL, userId)
+                .list();
+
+        Configuracao config = configs.isEmpty() ? null : configs.get(0);
+        
+        return new MercadoPagoConfigResponseDTO(config != null && config.getMpAccessToken() != null);
     }
 }
