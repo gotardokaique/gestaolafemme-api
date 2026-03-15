@@ -13,7 +13,7 @@ import com.sdk.mpoauth.controller.MercadoPagoOAuthController;
 import com.sdk.mpoauth.model.MercadoPagoTokenResponse;
 import com.sdk.mpoauth.service.MercadoPagoOAuthService;
 
-@RestController
+@RestController("mercadoPagoOAuthController")
 @RequestMapping("/mp")
 public class MercadoPagoCallbackController extends MercadoPagoOAuthController {
 
