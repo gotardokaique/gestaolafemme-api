@@ -4,11 +4,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gestao.lafemme.api.context.UserContext;
 import com.gestao.lafemme.api.controllers.dto.ConfiguracaoTokenDTO;
+import com.gestao.lafemme.api.controllers.dto.EmailConfigRequestDTO;
+import com.gestao.lafemme.api.controllers.dto.EmailConfigResponseDTO;
 import com.gestao.lafemme.api.services.ConfiguracaoService;
 
 @RestController
@@ -38,5 +42,24 @@ public class ConfiguracaoController {
     public ResponseEntity<String> revogarToken() throws Exception {
         configuracaoService.revogarToken();
         return ResponseEntity.ok("Token revogado com sucesso!");
+    }
+
+    @GetMapping("/email")
+    public ResponseEntity<EmailConfigResponseDTO> getEmailConfig() {
+        EmailConfigResponseDTO response = configuracaoService.buscarEmailConfig();
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/email")
+    public ResponseEntity<EmailConfigResponseDTO> salvarEmailConfig(
+            @RequestBody EmailConfigRequestDTO request) throws Exception {
+        EmailConfigResponseDTO response = configuracaoService.salvarEmailConfig(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/email")
+    public ResponseEntity<Void> deletarEmailConfig() throws Exception {
+        configuracaoService.deletarEmailConfig();
+        return ResponseEntity.noContent().build();
     }
 }
