@@ -1,23 +1,22 @@
 package com.gestao.lafemme.api.services;
 
-import java.util.ArrayList;
+
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestao.lafemme.api.context.UserContext;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigResponseDTO;
-
-import com.gestao.lafemme.api.context.UserContext;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.db.TransactionDB;
 import com.gestao.lafemme.api.entity.Configuracao;
+import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
-import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 import com.gestao.lafemme.api.utils.StringEncryptUtils;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -189,6 +188,49 @@ public class ConfiguracaoService {
             trans.update(config);
         } catch (EntityNotFoundException e) {
             return;
+        }
+    }
+
+    @Transactional
+    public void salvarMercadoPagoConfig(com.sdk.mpoauth.model.MercadoPagoTokenResponse response) throws Exception {
+        Long userId = UserContext.getIdUsuario();
+        Unidade unidade = UserContext.getUnidade();
+
+        Configuracao config;
+        try {
+            config = dao.select()
+                    .from(Configuracao.class)
+                    .where("usuario.id", Condicao.EQUAL, userId)
+                    .one();
+        } catch (EntityNotFoundException e) {
+            config = new Configuracao();
+            Usuario usuario = trans.selectById(Usuario.class, userId);
+            if (usuario == null) {
+                throw new IllegalStateException("Usuário não encontrado");
+            }
+            config.setUsuario(usuario);
+            config.setApiToken("");
+            config.setAtivo(true);
+        }
+
+        config.setUnidade(unidade);
+        config.setMpAccessToken(response.getAccessToken());
+        config.setMpRefreshToken(response.getRefreshToken());
+        config.setMpPublicKey(response.getPublicKey());
+        config.setMpUserId(response.getUserId() != null ? String.valueOf(response.getUserId()) : null);
+        
+        if (response.getExpiresIn() != null) {
+            Calendar cal = Calendar.getInstance();
+            cal.add(Calendar.SECOND, response.getExpiresIn().intValue());
+            config.setMpExpiresAt(cal.getTime());
+        }
+
+        config.setUpdatedAt(new Date());
+
+        if (config.getId() == null) {
+            trans.insert(config);
+        } else {
+            trans.update(config);
         }
     }
 }

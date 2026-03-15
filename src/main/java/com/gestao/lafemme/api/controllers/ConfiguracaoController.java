@@ -14,6 +14,7 @@ import com.gestao.lafemme.api.controllers.dto.ConfiguracaoTokenDTO;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigResponseDTO;
 import com.gestao.lafemme.api.services.ConfiguracaoService;
+import com.sdk.mpoauth.model.MercadoPagoTokenResponse;
 
 @RestController
 @RequestMapping("/api/v1/configuracao")
@@ -61,5 +62,12 @@ public class ConfiguracaoController {
     public ResponseEntity<Void> deletarEmailConfig() throws Exception {
         configuracaoService.deletarEmailConfig();
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/mercado-pago")
+    public ResponseEntity<Void> salvarMercadoPagoConfig(
+            @RequestBody MercadoPagoTokenResponse response) throws Exception {
+        configuracaoService.salvarMercadoPagoConfig(response);
+        return ResponseEntity.ok().build();
     }
 }

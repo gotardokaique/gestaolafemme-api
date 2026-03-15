@@ -16,6 +16,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import jakarta.persistence.ManyToOne;
 
 @Entity
 @Table(name = "configuracao")
@@ -31,6 +32,26 @@ public class Configuracao implements Serializable {
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "conf_user_id", nullable = false, unique = true)
     private Usuario usuario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uni_id")
+    private Unidade unidade;
+
+    @Column(name = "conf_mp_access_token", columnDefinition = "TEXT")
+    private String mpAccessToken;
+
+    @Column(name = "conf_mp_refresh_token", columnDefinition = "TEXT")
+    private String mpRefreshToken;
+
+    @Column(name = "conf_mp_public_key")
+    private String mpPublicKey;
+
+    @Column(name = "conf_mp_user_id")
+    private String mpUserId;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "conf_mp_expires_at")
+    private Date mpExpiresAt;
 
     @Column(name = "conf_api_token", nullable = false, columnDefinition = "TEXT")
     private String apiToken;
@@ -124,5 +145,53 @@ public class Configuracao implements Serializable {
 
     public void setEmailSenhaApp(String emailSenhaApp) {
         this.emailSenhaApp = emailSenhaApp;
+    }
+
+    public Unidade getUnidade() {
+        return unidade;
+    }
+
+    public void setUnidade(Unidade unidade) {
+        this.unidade = unidade;
+    }
+
+    public String getMpAccessToken() {
+        return mpAccessToken;
+    }
+
+    public void setMpAccessToken(String mpAccessToken) {
+        this.mpAccessToken = mpAccessToken;
+    }
+
+    public String getMpRefreshToken() {
+        return mpRefreshToken;
+    }
+
+    public void setMpRefreshToken(String mpRefreshToken) {
+        this.mpRefreshToken = mpRefreshToken;
+    }
+
+    public String getMpPublicKey() {
+        return mpPublicKey;
+    }
+
+    public void setMpPublicKey(String mpPublicKey) {
+        this.mpPublicKey = mpPublicKey;
+    }
+
+    public String getMpUserId() {
+        return mpUserId;
+    }
+
+    public void setMpUserId(String mpUserId) {
+        this.mpUserId = mpUserId;
+    }
+
+    public Date getMpExpiresAt() {
+        return mpExpiresAt;
+    }
+
+    public void setMpExpiresAt(Date mpExpiresAt) {
+        this.mpExpiresAt = mpExpiresAt;
     }
 }
