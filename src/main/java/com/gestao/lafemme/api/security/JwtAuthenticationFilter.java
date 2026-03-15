@@ -47,12 +47,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod(); // 🟢 Adicionado para identificar o culpado (HEAD)
 
-        // 🟢 CORREÇÃO: Impede que métodos não suportados (como o HEAD do curl -I) 
-        // cheguem nos Controllers e gerem o Erro 500.
-        if ("HEAD".equalsIgnoreCase(method)) {
-            response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-            return;
-        }
+//        // 🟢 CORREÇÃO: Impede que métodos não suportados (como o HEAD do curl -I) 
+//        // cheguem nos Controllers e gerem o Erro 500.
+//        if ("HEAD".equalsIgnoreCase(method)) {
+//            response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+//            return;
+//        }
 
         // 1️⃣ Bypass rotas públicas
         if (isPublicAuthPath(path)) {
@@ -171,6 +171,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean isPublicAuthPath(String path) {
         return path.equals("/api/v1/auth/login")
             || path.equals("/api/v1/auth/register")
+            || path.startsWith("/mp/")
+            || path.startsWith("/public/")
             || path.equals("/api/v1/auth/refresh");
     }
 }
