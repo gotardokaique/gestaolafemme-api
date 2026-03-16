@@ -236,18 +236,24 @@ public class ConfiguracaoService {
     }
     @Transactional(readOnly = true)
     public MercadoPagoConfigResponseDTO buscarMercadoPagoConfig() throws Exception {
-        Long userId = UserContext.getIdUsuario();
-        Usuario usuario = dao.select().from(Usuario.class).where("id", Condicao.EQUAL, userId).one();
-        Unidade unidade = usuario.getUnidadeAtiva();
-
+    	Unidade unidade = UserContext.getUnidade();
+  
         if (unidade == null) {
             return new MercadoPagoConfigResponseDTO(false);
         }
+        
+        List<Configuracao> configs;
+        try {
+        	configs = dao.select()
+        			.from(Configuracao.class)
+        			.where("unidade.id", Condicao.EQUAL, unidade.getId())
+        			.list();
+        	
+        } catch (Exception e) {
+        	e.printStackTrace();
+            return new MercadoPagoConfigResponseDTO(false);
 
-        List<Configuracao> configs = dao.select()
-                .from(Configuracao.class)
-                .where("unidade.id", Condicao.EQUAL, unidade.getId())
-                .list();
+        }
 
         Configuracao config = configs.isEmpty() ? null : configs.get(0);
         
