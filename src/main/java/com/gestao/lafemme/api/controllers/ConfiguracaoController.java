@@ -13,6 +13,7 @@ import com.gestao.lafemme.api.context.UserContext;
 import com.gestao.lafemme.api.controllers.dto.ConfiguracaoTokenDTO;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigResponseDTO;
+import com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigResponseDTO;
 import com.gestao.lafemme.api.services.ConfiguracaoService;
 import com.sdk.mpoauth.model.MercadoPagoTokenResponse;
 
@@ -69,5 +70,11 @@ public class ConfiguracaoController {
             @RequestBody MercadoPagoTokenResponse response) throws Exception {
         configuracaoService.salvarMercadoPagoConfig(response);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/mercado-pago")
+    public ResponseEntity<MercadoPagoConfigResponseDTO> getMercadoPagoConfig() throws Exception {
+        MercadoPagoConfigResponseDTO response = configuracaoService.buscarMercadoPagoConfig();
+        return ResponseEntity.ok(response);
     }
 }
