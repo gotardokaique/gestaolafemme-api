@@ -24,7 +24,8 @@ public class MercadoPagoCallbackController {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    public MercadoPagoCallbackController(MercadoPagoOAuthService oAuthService, ConfiguracaoService configuracaoService) {
+    public MercadoPagoCallbackController(MercadoPagoOAuthService oAuthService,
+            ConfiguracaoService configuracaoService) {
         this.oAuthService = oAuthService;
         this.configuracaoService = configuracaoService;
     }
@@ -33,8 +34,7 @@ public class MercadoPagoCallbackController {
     public ResponseEntity<?> callback(
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String error,
-            @RequestParam(required = false) String state
-    ) {
+            @RequestParam(required = false) String state) {
         try {
             if (state == null || state.isBlank()) {
                 return redirecionarComErro("mp_invalid_state");
@@ -53,14 +53,14 @@ public class MercadoPagoCallbackController {
                     .build();
 
         } catch (Exception e) {
-            return redirecionarComErro("mp_save_failed");	
+            return redirecionarComErro("mp_save_failed");
         }
     }
-    
+
     @GetMapping("/autorizar")
     public ResponseEntity<Void> autorizar(@RequestParam(required = false) String state) {
         String url = oAuthService.gerarUrlAutorizacao(state);
-        
+
         return ResponseEntity.status(302)
                 .location(URI.create(url))
                 .build();
