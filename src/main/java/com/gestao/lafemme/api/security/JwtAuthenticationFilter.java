@@ -174,6 +174,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             || path.equals("/api/v1/auth/register")
             || path.startsWith("/mp/")
             || path.startsWith("/public/")
+            || path.equals("/favicon.ico")
             || path.equals("/api/v1/auth/refresh");
     }
 }

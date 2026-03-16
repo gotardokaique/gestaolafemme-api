@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .requestMatchers("/mp/**").permitAll()
                 .requestMatchers("/public/**").permitAll()
+                .requestMatchers("/favicon.ico**").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider)
