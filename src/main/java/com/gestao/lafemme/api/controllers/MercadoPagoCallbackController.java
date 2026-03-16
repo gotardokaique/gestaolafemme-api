@@ -2,6 +2,7 @@ package com.gestao.lafemme.api.controllers;
 
 import java.net.URI;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,24 +10,25 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gestao.lafemme.api.services.ConfiguracaoService;
-import com.sdk.mpoauth.controller.MercadoPagoOAuthController;
 import com.sdk.mpoauth.model.MercadoPagoTokenResponse;
 import com.sdk.mpoauth.service.MercadoPagoOAuthService;
 
-@RestController("mercadoPagoOAuthController")
+@RestController
 @RequestMapping("/mp")
-public class MercadoPagoCallbackController extends MercadoPagoOAuthController {
+public class MercadoPagoCallbackController {
 
     private final MercadoPagoOAuthService oAuthService;
     private final ConfiguracaoService configuracaoService;
 
+    // Injeção da URL do frontend a partir do application.properties
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
+
     public MercadoPagoCallbackController(MercadoPagoOAuthService oAuthService, ConfiguracaoService configuracaoService) {
-        super(oAuthService);
         this.oAuthService = oAuthService;
         this.configuracaoService = configuracaoService;
     }
 
-    @Override
     @GetMapping("/callback")
     public ResponseEntity<?> callback(
             @RequestParam(required = false) String code,
@@ -34,27 +36,39 @@ public class MercadoPagoCallbackController extends MercadoPagoOAuthController {
             @RequestParam(required = false) String state
     ) {
         try {
-            // Se houver erro ou não houver code, redireciona de volta com erro
-            if (error != null || code == null || code.isBlank()) {
-                return ResponseEntity.status(302)
-                        .location(URI.create("/configuracoes?error=mp_auth_failed"))
-                        .build();
+            if (state == null || state.isBlank()) {
+                return redirecionarComErro("mp_invalid_state");
             }
 
-            // Troca o code pelo token usando o SDK
+            if (error != null || code == null || code.isBlank()) {
+                return redirecionarComErro("mp_auth_failed");
+            }
+
             MercadoPagoTokenResponse tokenResponse = oAuthService.trocarCodePorToken(code);
 
-            // Salva a configuração no banco de dados
             configuracaoService.salvarMercadoPagoConfig(tokenResponse);
 
-            // Redireciona de volta para a tela de configurações no frontend
             return ResponseEntity.status(302)
-                    .location(URI.create("/configuracoes?success=mp_connected"))
+                    .location(URI.create(frontendUrl + "/configuracoes?success=mp_connected"))
                     .build();
+
         } catch (Exception e) {
-            return ResponseEntity.status(302)
-                    .location(URI.create("/configuracoes?error=mp_save_failed"))
-                    .build();
+            return redirecionarComErro("mp_save_failed");	
         }
+    }
+    
+    @GetMapping("/autorizar")
+    public ResponseEntity<Void> autorizar(@RequestParam(required = false) String state) {
+        String url = oAuthService.gerarUrlAutorizacao(state);
+        
+        return ResponseEntity.status(302)
+                .location(URI.create(url))
+                .build();
+    }
+
+    private ResponseEntity<Void> redirecionarComErro(String motivo) {
+        return ResponseEntity.status(302)
+                .location(URI.create(frontendUrl + "/configuracoes?error=" + motivo))
+                .build();
     }
 }
