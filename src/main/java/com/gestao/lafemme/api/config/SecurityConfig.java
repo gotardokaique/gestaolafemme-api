@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .requestMatchers("/mp/**").permitAll()
                 .requestMatchers("/public/**").permitAll()
+                .requestMatchers("/api/v1/vendas/webhook/mercadopago").permitAll()
                 .requestMatchers("/favicon.ico**").permitAll()
                 .anyRequest().authenticated()
             )
