@@ -68,20 +68,18 @@ public class MercadoPagoService {
             }
         }
 
-        String externalRef = UUID.randomUUID().toString();
-
         Map<String, Object> body = new HashMap<>();
         body.put("items", items);
         
         Map<String, String> backUrls = new HashMap<>();
-        backUrls.put("success", baseUrl + "/api/vendas/webhook/mercadopago");
-        backUrls.put("failure", baseUrl + "/api/vendas/webhook/mercadopago");
-        backUrls.put("pending", baseUrl + "/api/vendas/webhook/mercadopago");
+        backUrls.put("success", baseUrl + "/api/v1/vendas/webhook/mercadopago");
+        backUrls.put("failure", baseUrl + "/api/v1/vendas/webhook/mercadopago");
+        backUrls.put("pending", baseUrl + "/api/v1/vendas/webhook/mercadopago");
         
         body.put("back_urls", backUrls);
         body.put("auto_return", "approved");
-        body.put("notification_url", baseUrl + "/api/vendas/webhook/mercadopago");
-        body.put("external_reference", externalRef);
+        body.put("notification_url", baseUrl + "/api/v1/vendas/webhook/mercadopago");
+        body.put("external_reference", venda.getMpExternalReference());
 
         HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
@@ -98,5 +96,19 @@ public class MercadoPagoService {
         } catch (Exception e) {
             throw new BusinessException("Erro ao gerar link de pagamento: " + e.getMessage());
         }
+    }
+
+    public Map<String, Object> consultarPagamento(String paymentId, String accessToken) throws Exception {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "https://api.mercadopago.com/v1/payments/" + paymentId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> response = restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, Map.class).getBody();
+        return response;
     }
 }

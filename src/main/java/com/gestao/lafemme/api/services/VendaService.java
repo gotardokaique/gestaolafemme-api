@@ -102,8 +102,8 @@ public class VendaService {
         lanc.setValor(venda.getValorTotal());
         lanc.setDescricao("Venda - " + venda.getFormaPagamento());
         lanc.setDataLancamento(venda.getDataVenda());
-        lanc.setUsuario(UserContext.getUsuario());
-        lanc.setUnidade(UserContext.getUnidade());
+        lanc.setUsuario(venda.getUsuario());
+        lanc.setUnidade(venda.getUnidade());
 
         dao.insert(lanc);
     }
@@ -237,6 +237,11 @@ public class VendaService {
             throw new BusinessException("Você não conectou sua conta do Mercado Pago em configurações.");
         }
 
+        if (venda.getMpExternalReference() == null) {
+            venda.setMpExternalReference(java.util.UUID.randomUUID().toString());
+            dao.update(venda);
+        }
+
         com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse preference = mercadoPagoService.criarPreference(venda, configMp.accessToken());
         
         venda.setMpPreferenceId(preference.preferenceId());
@@ -244,5 +249,38 @@ public class VendaService {
         dao.update(venda);
 
         return preference;
+    }
+
+    @Transactional
+    public void confirmarPagamentoViaMp(String paymentId, com.gestao.lafemme.api.entity.Configuracao config) throws Exception {
+        java.util.Map<String, Object> payment = mercadoPagoService.consultarPagamento(paymentId, config.getMpAccessToken());
+        if (payment == null || !"approved".equals(payment.get("status"))) {
+            return;
+        }
+
+        String externalRef = (String) payment.get("external_reference");
+        if (externalRef == null) {
+            return;
+        }
+
+        List<Venda> vendas = dao.select()
+                .from(Venda.class)
+                .join("situacao")
+                .where("mpExternalReference", Condicao.EQUAL, externalRef)
+                .list();
+
+        if (vendas.isEmpty()) {
+            return;
+        }
+
+        Venda venda = vendas.get(0);
+
+        if (!SitId.PENDENTE.equals(venda.getSituacao().getId())) {
+            return;
+        }
+
+        venda.setSituacao(new Situacao(SitId.CONCLUIDO));
+        dao.update(venda);
+        gerarLancamentoFinanceiro(venda);
     }
 }

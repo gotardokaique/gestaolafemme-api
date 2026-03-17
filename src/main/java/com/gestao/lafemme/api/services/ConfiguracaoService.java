@@ -283,4 +283,14 @@ public class ConfiguracaoService {
                 config.getMpWebhookSecret()
         );
     }
+    
+    @Transactional(readOnly = true)
+    public Configuracao buscarPorMpUserId(String mpUserId) {
+        if (mpUserId == null || mpUserId.isBlank()) return null;
+        List<Configuracao> configs = dao.select()
+                .from(Configuracao.class)
+                .where("mpUserId", Condicao.EQUAL, mpUserId)
+                .list();
+        return configs.isEmpty() ? null : configs.get(0);
+    }
 }

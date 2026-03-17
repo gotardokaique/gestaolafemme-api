@@ -56,6 +56,9 @@ public class Venda {
     @Column(name = "vend_mp_payment_link", length = 500)
     private String mpPaymentLink;
 
+    @Column(name = "vend_mp_external_reference", length = 255)
+    private String mpExternalReference;
+
     public Venda() {}
 
     @PrePersist
@@ -158,6 +161,14 @@ public class Venda {
 
     public void setMpPaymentLink(String mpPaymentLink) {
         this.mpPaymentLink = mpPaymentLink;
+    }
+
+    public String getMpExternalReference() {
+        return mpExternalReference;
+    }
+
+    public void setMpExternalReference(String mpExternalReference) {
+        this.mpExternalReference = mpExternalReference;
     }
 
     @Override
