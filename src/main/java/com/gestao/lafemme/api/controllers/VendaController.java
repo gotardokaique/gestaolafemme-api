@@ -47,4 +47,9 @@ public class VendaController {
         vendaService.cancelarVenda(id);
         return ResponseEntity.ok("Venda cancelada com sucesso!");
     }
+
+    @PostMapping("/{id}/gerar-link-pagamento")
+    public ResponseEntity<com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse> gerarLinkPagamento(@PathVariable Long id) throws Exception {
+        return ResponseEntity.ok(vendaService.gerarLinkPagamento(id));
+    }
 }

@@ -53,6 +53,9 @@ public class Configuracao implements Serializable {
     @Column(name = "conf_mp_expires_at")
     private Date mpExpiresAt;
 
+    @Column(name = "conf_mp_webhook_secret")
+    private String mpWebhookSecret;
+
     @Column(name = "conf_api_token", nullable = false, columnDefinition = "TEXT")
     private String apiToken;
 
@@ -193,5 +196,13 @@ public class Configuracao implements Serializable {
 
     public void setMpExpiresAt(Date mpExpiresAt) {
         this.mpExpiresAt = mpExpiresAt;
+    }
+
+    public String getMpWebhookSecret() {
+        return mpWebhookSecret;
+    }
+
+    public void setMpWebhookSecret(String mpWebhookSecret) {
+        this.mpWebhookSecret = mpWebhookSecret;
     }
 }

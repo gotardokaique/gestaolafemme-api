@@ -50,6 +50,11 @@ public class Venda {
     @JoinColumn(name = "sit_id", referencedColumnName = "sit_id", nullable = false)
     private Situacao situacao;
 
+    @Column(name = "vend_mp_preference_id", length = 255)
+    private String mpPreferenceId;
+
+    @Column(name = "vend_mp_payment_link", length = 500)
+    private String mpPaymentLink;
 
     public Venda() {}
 
@@ -137,7 +142,23 @@ public class Venda {
     
     public void setSituacao(Situacao situacao) { 
     	this.situacao = situacao;
-    	}
+    }
+
+    public String getMpPreferenceId() {
+        return mpPreferenceId;
+    }
+
+    public void setMpPreferenceId(String mpPreferenceId) {
+        this.mpPreferenceId = mpPreferenceId;
+    }
+
+    public String getMpPaymentLink() {
+        return mpPaymentLink;
+    }
+
+    public void setMpPaymentLink(String mpPaymentLink) {
+        this.mpPaymentLink = mpPaymentLink;
+    }
 
     @Override
     public boolean equals(Object o) {

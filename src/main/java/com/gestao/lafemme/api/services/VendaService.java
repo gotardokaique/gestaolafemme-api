@@ -28,9 +28,13 @@ import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 public class VendaService {
 
     private final DAOController dao;
+    private final MercadoPagoService mercadoPagoService;
+    private final ConfiguracaoService configuracaoService;
 
-    public VendaService(DAOController dao) {
+    public VendaService(DAOController dao, MercadoPagoService mercadoPagoService, ConfiguracaoService configuracaoService) {
         this.dao = dao;
+        this.mercadoPagoService = mercadoPagoService;
+        this.configuracaoService = configuracaoService;
     }
 
     @Transactional
@@ -219,5 +223,26 @@ public class VendaService {
         } catch (Exception e) {
             throw new NotFoundException("Venda não encontrada.");
         }
+    }
+
+    @Transactional
+    public com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse gerarLinkPagamento(Long id) throws Exception {
+        Venda venda = buscarEntityPorId(id);
+        if (!SitId.PENDENTE.equals(venda.getSituacao().getId())) {
+            throw new BusinessException("Apenas vendas pendentes podem gerar link de pagamento.");
+        }
+
+        com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP configMp = configuracaoService.getMercadoPagoConfig();
+        if (configMp == null) {
+            throw new BusinessException("Você não conectou sua conta do Mercado Pago em configurações.");
+        }
+
+        com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse preference = mercadoPagoService.criarPreference(venda, configMp.accessToken());
+        
+        venda.setMpPreferenceId(preference.preferenceId());
+        venda.setMpPaymentLink(preference.paymentLink());
+        dao.update(venda);
+
+        return preference;
     }
 }

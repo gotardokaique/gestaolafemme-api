@@ -259,4 +259,28 @@ public class ConfiguracaoService {
         
         return new MercadoPagoConfigResponseDTO(config != null && config.getMpAccessToken() != null);
     }
+
+    @Transactional(readOnly = true)
+    public com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP getMercadoPagoConfig() {
+        Unidade unidade = UserContext.getUnidade();
+  
+        if (unidade == null) {
+            return null;
+        }
+        
+        List<Configuracao> configs = dao.select()
+                .from(Configuracao.class)
+                .where("unidade.id", Condicao.EQUAL, unidade.getId())
+                .list();
+        
+        Configuracao config = configs.isEmpty() ? null : configs.get(0);
+        if (config == null || config.getMpAccessToken() == null || config.getMpAccessToken().isBlank()) {
+            return null;
+        }
+        
+        return new com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP(
+                config.getMpAccessToken(),
+                config.getMpWebhookSecret()
+        );
+    }
 }
