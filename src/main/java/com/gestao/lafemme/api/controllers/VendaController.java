@@ -35,4 +35,16 @@ public class VendaController {
     public ResponseEntity<VendaResponseDTO> buscarPorId(@PathVariable Long id) throws Exception {
         return ResponseEntity.ok(vendaService.buscarPorId(id));
     }
+
+    @PutMapping("/{id}/concluir")
+    public ResponseEntity<String> concluir(@PathVariable Long id) throws Exception {
+        vendaService.concluirVenda(id);
+        return ResponseEntity.ok("Venda concluída com sucesso!");
+    }
+
+    @PutMapping("/{id}/cancelar")
+    public ResponseEntity<String> cancelar(@PathVariable Long id) throws Exception {
+        vendaService.cancelarVenda(id);
+        return ResponseEntity.ok("Venda cancelada com sucesso!");
+    }
 }

@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestao.lafemme.api.constants.SitId;
 import com.gestao.lafemme.api.context.UserContext;
 import com.gestao.lafemme.api.controllers.dto.VendaRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.VendaResponseDTO;
@@ -16,6 +17,7 @@ import com.gestao.lafemme.api.entity.Estoque;
 import com.gestao.lafemme.api.entity.LancamentoFinanceiro;
 import com.gestao.lafemme.api.entity.MovimentacaoEstoque;
 import com.gestao.lafemme.api.entity.Produto;
+import com.gestao.lafemme.api.entity.Situacao;
 import com.gestao.lafemme.api.entity.Venda;
 import com.gestao.lafemme.api.enuns.TipoLancamentoFinanceiro;
 import com.gestao.lafemme.api.enuns.TipoMovimentacaoEstoque;
@@ -34,15 +36,15 @@ public class VendaService {
     @Transactional
     public void criarVenda(VendaRequestDTO dto) throws Exception {
 
-        if (dto.produtoId() == null) throw new BusinessException("Produto é obrigatório.");
-        if (dto.quantidade() == null || dto.quantidade() <= 0) throw new BusinessException("Quantidade deve ser maior que zero.");
-        if (dto.formaPagamento() == null || dto.formaPagamento().isBlank()) throw new BusinessException("Forma de pagamento é obrigatória.");
+        if (dto.produtoId() == null)
+            throw new BusinessException("Produto é obrigatório.");
+        if (dto.quantidade() == null || dto.quantidade() <= 0)
+            throw new BusinessException("Quantidade deve ser maior que zero.");
+        if (dto.formaPagamento() == null || dto.formaPagamento().isBlank())
+            throw new BusinessException("Forma de pagamento é obrigatória.");
 
         Produto produto = buscarProduto(dto.produtoId());
-        
-        // SEURANÇA: NUNCA confiar no valor total vindo do cliente. Calcular sempre no servidor.
         BigDecimal valorTotal = produto.getValorVenda().multiply(new BigDecimal(dto.quantidade()));
-
 
         Venda venda = new Venda();
         venda.setDataVenda(dto.dataVenda() != null ? dto.dataVenda() : new Date());
@@ -50,21 +52,16 @@ public class VendaService {
         venda.setFormaPagamento(dto.formaPagamento().trim());
         venda.setUsuario(UserContext.getUsuario());
         venda.setUnidade(UserContext.getUnidade());
+        venda.setSituacao(new Situacao(SitId.PENDENTE));
 
         dao.insert(venda);
-
-        gerarLancamentoFinanceiro(venda);
 
         adicionarMovimentacaoSaida(venda, produto, dto.quantidade(), dto.observacao());
     }
 
     @Transactional
-    private void adicionarMovimentacaoSaida(
-            Venda venda,
-            Produto produto,
-            int quantidade,
-            String observacao
-    ) throws Exception {
+    private void adicionarMovimentacaoSaida(Venda venda, Produto produto, int quantidade, String observacao)
+            throws Exception {
 
         Estoque estoque = buscarEstoquePorProduto(produto.getId());
 
@@ -113,23 +110,25 @@ public class VendaService {
                 .from(Venda.class)
                 .join("usuario")
                 .join("unidade")
+                .join("situacao")
                 .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                 .orderBy("dataVenda", false)
                 .list();
-        
+
         return VendaResponseDTO.refactor(lista);
     }
 
     @Transactional(readOnly = true)
     public VendaResponseDTO buscarPorId(Long id) throws Exception {
         try {
-            Venda v = dao.select()
+            Venda venda = dao.select()
                     .from(Venda.class)
                     .join("usuario")
                     .join("unidade")
+                    .join("situacao")
                     .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                     .id(id);
-            return VendaResponseDTO.from(v);
+            return VendaResponseDTO.from(venda);
         } catch (Exception e) {
             throw new NotFoundException("Venda não encontrada.");
         }
@@ -158,6 +157,67 @@ public class VendaService {
                     .one();
         } catch (Exception e) {
             throw new NotFoundException("Estoque não encontrado para o produto.");
+        }
+    }
+
+    @Transactional
+    public void concluirVenda(Long id) throws Exception {
+        Venda venda = buscarEntityPorId(id);
+        if (SitId.PENDENTE.equals(venda.getSituacao().getId()) == false) {
+            throw new BusinessException("Apenas vendas pendentes podem ser concluídas.");
+        }
+        venda.setSituacao(new Situacao(SitId.CONCLUIDO));
+        dao.update(venda);
+        gerarLancamentoFinanceiro(venda);
+    }
+
+    @Transactional
+    public void cancelarVenda(Long id) throws Exception {
+        Venda venda = buscarEntityPorId(id);
+        if (!SitId.PENDENTE.equals(venda.getSituacao().getId())) {
+            throw new BusinessException("Apenas vendas pendentes podem ser canceladas.");
+        }
+        venda.setSituacao(new Situacao(SitId.CANCELADO));
+        dao.update(venda);
+
+        MovimentacaoEstoque movRef = dao.select()
+                .from(MovimentacaoEstoque.class)
+                .join("venda")
+                .where("venda.id", Condicao.EQUAL, venda.getId())
+                .one();
+
+        if (movRef != null) {
+            Produto produto = movRef.getProduto();
+            Estoque estoque = buscarEstoquePorProduto(produto.getId());
+            int devolvido = movRef.getQuantidade();
+            estoque.setQuantidadeAtual(estoque.getQuantidadeAtual() + devolvido);
+            dao.update(estoque);
+
+            MovimentacaoEstoque compensacao = new MovimentacaoEstoque();
+            compensacao.setDataMovimentacao(new Date());
+            compensacao.setTipoMovimentacao(TipoMovimentacaoEstoque.ENTRADA);
+            compensacao.setQuantidade(devolvido);
+            compensacao.setObservacao("Cancelamento de venda #" + venda.getId());
+            compensacao.setEstoque(estoque);
+            compensacao.setVenda(venda);
+            compensacao.setProduto(produto);
+            compensacao.setUsuario(UserContext.getUsuario());
+            compensacao.setUnidade(UserContext.getUnidade());
+            dao.insert(compensacao);
+        }
+    }
+
+    private Venda buscarEntityPorId(Long id) throws Exception {
+        try {
+            return dao.select()
+                    .from(Venda.class)
+                    .join("usuario")
+                    .join("unidade")
+                    .join("situacao")
+                    .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
+                    .id(id);
+        } catch (Exception e) {
+            throw new NotFoundException("Venda não encontrada.");
         }
     }
 }

@@ -12,14 +12,22 @@ public record VendaResponseDTO(
         Long id,
         Date dataVenda,
         BigDecimal valorTotal,
-        String formaPagamento
+        String formaPagamento,
+        SituacaoDTO situacao
 ) {
+    public record SituacaoDTO(Integer id, String nome) {}
+
     public static VendaResponseDTO from(Venda venda) {
+        SituacaoDTO sitDto = venda.getSituacao() != null 
+            ? new SituacaoDTO(venda.getSituacao().getId(), venda.getSituacao().getNome()) 
+            : null;
+
         return new VendaResponseDTO(
                 venda.getId(),
                 venda.getDataVenda(),
                 venda.getValorTotal(),
-                venda.getFormaPagamento()
+                venda.getFormaPagamento(),
+                sitDto
         );
     }
 

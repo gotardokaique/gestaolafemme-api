@@ -45,6 +45,10 @@ public class Venda {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "uni_id", nullable = false)
     private Unidade unidade;
+    
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "sit_id", referencedColumnName = "sit_id", nullable = false)
+    private Situacao situacao;
 
 
     public Venda() {}
@@ -126,6 +130,14 @@ public class Venda {
     public void setUnidade(Unidade unidade) {
         this.unidade = unidade;
     }
+    
+    public Situacao getSituacao() { 
+    	return situacao; 
+    	}
+    
+    public void setSituacao(Situacao situacao) { 
+    	this.situacao = situacao;
+    	}
 
     @Override
     public boolean equals(Object o) {
