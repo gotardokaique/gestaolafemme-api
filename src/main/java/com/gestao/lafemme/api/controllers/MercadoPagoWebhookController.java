@@ -13,7 +13,7 @@ import com.gestao.lafemme.api.services.ConfiguracaoService;
 import com.gestao.lafemme.api.services.VendaService;
 
 @RestController
-@RequestMapping("/api/v1/vendas/webhook/mercadopago")
+@RequestMapping("/mp/webhook/mercadopago")
 public class MercadoPagoWebhookController {
 
     private static final Logger log = LoggerFactory.getLogger(MercadoPagoWebhookController.class);
@@ -33,17 +33,26 @@ public class MercadoPagoWebhookController {
             @RequestBody MercadoPagoNotificationDTO payload) {
 
         try {
-            if (!"payment".equals(payload.getType())) {
+            boolean isPayment = "payment".equals(payload.getType()) ||
+                    (payload.getAction() != null && payload.getAction().startsWith("payment."));
+
+            if (!isPayment) {
                 return ResponseEntity.ok("Ignored non-payment");
             }
 
-            if (payload.getUserId() == null || payload.getData() == null || payload.getData().getId() == null) {
-                return ResponseEntity.badRequest().body("Invalid payload");
+            if (payload.getData() == null || payload.getData().getId() == null) {
+                return ResponseEntity.badRequest().body("Invalid payload: missing data.id");
             }
 
-            Configuracao config = configuracaoService.buscarPorMpUserId(payload.getUserId());
+            Configuracao config = null;
+            if (payload.getUserId() != null) {
+                config = configuracaoService.buscarPorMpUserId(payload.getUserId());
+            } else {
+                config = configuracaoService.buscarPrimeiraConfiguracaoValida();
+            }
+
             if (config == null || config.getMpWebhookSecret() == null) {
-                log.warn("Webhook received but no configuration found for user {}", payload.getUserId());
+                log.warn("Webhook received but no configuration found (or no secret)");
                 return ResponseEntity.badRequest().body("Config missing");
             }
 
@@ -57,7 +66,6 @@ public class MercadoPagoWebhookController {
                 return ResponseEntity.badRequest().body("Invalid signature");
             }
 
-            // Authenticate temporarily as the user associated with this webhook config
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                     config.getUsuario(), null, config.getUsuario().getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(auth);
@@ -80,26 +88,31 @@ public class MercadoPagoWebhookController {
             String ts = null;
             String v1 = null;
             for (String part : xSignature.split(",")) {
-                if (part.trim().startsWith("ts=")) ts = part.trim().substring(3);
-                else if (part.trim().startsWith("v1=")) v1 = part.trim().substring(3);
+                if (part.trim().startsWith("ts="))
+                    ts = part.trim().substring(3);
+                else if (part.trim().startsWith("v1="))
+                    v1 = part.trim().substring(3);
             }
 
-            if (ts == null || v1 == null) return false;
+            if (ts == null || v1 == null)
+                return false;
 
             String manifest = "id:" + dataId + ";request-id:" + xRequestId + ";ts:" + ts + ";";
             javax.crypto.Mac sha256_HMAC = javax.crypto.Mac.getInstance("HmacSHA256");
-            javax.crypto.spec.SecretKeySpec secret_key = new javax.crypto.spec.SecretKeySpec(secret.getBytes("UTF-8"), "HmacSHA256");
+            javax.crypto.spec.SecretKeySpec secret_key = new javax.crypto.spec.SecretKeySpec(secret.getBytes("UTF-8"),
+                    "HmacSHA256");
             sha256_HMAC.init(secret_key);
-            
+
             byte[] hash = sha256_HMAC.doFinal(manifest.getBytes("UTF-8"));
-            
+
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
-            
+
             return hexString.toString().equals(v1);
         } catch (Exception e) {
             log.error("Signature validation error", e);

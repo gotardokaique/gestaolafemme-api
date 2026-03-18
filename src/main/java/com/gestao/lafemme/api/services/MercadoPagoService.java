@@ -73,13 +73,13 @@ public class MercadoPagoService {
         body.put("items", items);
 
         Map<String, String> backUrls = new HashMap<>();
-        backUrls.put("success", baseUrl + "/api/v1/vendas/webhook/mercadopago");
-        backUrls.put("failure", baseUrl + "/api/v1/vendas/webhook/mercadopago");
-        backUrls.put("pending", baseUrl + "/api/v1/vendas/webhook/mercadopago");
+        backUrls.put("success", baseUrl + "/mp/webhook/mercadopago");
+        backUrls.put("failure", baseUrl + "/mp/webhook/mercadopago");
+        backUrls.put("pending", baseUrl + "/mp/webhook/mercadopago");
 
         body.put("back_urls", backUrls);
         body.put("auto_return", "approved");
-        body.put("notification_url", baseUrl + "/api/v1/vendas/webhook/mercadopago");
+        body.put("notification_url", baseUrl + "/mp/webhook/mercadopago");
         body.put("external_reference", venda.getMpExternalReference());
 
         HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);

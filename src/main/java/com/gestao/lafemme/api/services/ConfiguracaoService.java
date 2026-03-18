@@ -328,4 +328,16 @@ public class ConfiguracaoService {
                 .list();
         return configs.isEmpty() ? null : configs.get(0);
     }
+    @Transactional(readOnly = true)
+    public Configuracao buscarPrimeiraConfiguracaoValida() {
+        List<Configuracao> configs = dao.select()
+                .from(Configuracao.class)
+                .list();
+        for (Configuracao c : configs) {
+            if (c.getMpAccessToken() != null && !c.getMpAccessToken().isBlank()) {
+                return c;
+            }
+        }
+        return null;
+    }
 }
