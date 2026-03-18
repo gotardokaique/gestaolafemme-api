@@ -239,7 +239,7 @@ public class ConfiguracaoService {
     	Unidade unidade = UserContext.getUnidade();
   
         if (unidade == null) {
-            return new MercadoPagoConfigResponseDTO(false);
+            return new MercadoPagoConfigResponseDTO(false, null);
         }
         
         List<Configuracao> configs;
@@ -251,13 +251,47 @@ public class ConfiguracaoService {
         	
         } catch (Exception e) {
         	e.printStackTrace();
-            return new MercadoPagoConfigResponseDTO(false);
-
+            return new MercadoPagoConfigResponseDTO(false, null);
         }
 
         Configuracao config = configs.isEmpty() ? null : configs.get(0);
         
-        return new MercadoPagoConfigResponseDTO(config != null && config.getMpAccessToken() != null);
+        return new MercadoPagoConfigResponseDTO(
+            config != null && config.getMpAccessToken() != null,
+            config != null ? config.getTipoPagamentoMp() : null
+        );
+    }
+    
+    @Transactional
+    public void atualizarTipoPagamentoMercadoPago(com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigRequestDTO request) throws Exception {
+    	Unidade unidade = UserContext.getUnidade();
+        Long userId = UserContext.getIdUsuario();
+        if (unidade == null) return;
+        
+        Configuracao config;
+        try {
+            config = dao.select()
+                    .from(Configuracao.class)
+                    .where("unidade.id", Condicao.EQUAL, unidade.getId())
+                    .one();
+        } catch (Exception e) {
+            config = new Configuracao();
+            Usuario usuario = trans.selectById(Usuario.class, userId);
+            if (usuario == null) throw new IllegalStateException("Usuário não encontrado");
+            config.setUsuario(usuario);
+            config.setApiToken("");
+            config.setAtivo(true);
+            config.setUnidade(unidade);
+        }
+        
+        config.setTipoPagamentoMp(request.tipoPagamento());
+        config.setUpdatedAt(new Date());
+
+        if (config.getId() == null) {
+            trans.insert(config);
+        } else {
+            trans.update(config);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -280,7 +314,8 @@ public class ConfiguracaoService {
         
         return new com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP(
                 config.getMpAccessToken(),
-                config.getMpWebhookSecret()
+                config.getMpWebhookSecret(),
+                config.getTipoPagamentoMp()
         );
     }
     

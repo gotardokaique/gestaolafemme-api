@@ -77,4 +77,11 @@ public class ConfiguracaoController {
         MercadoPagoConfigResponseDTO response = configuracaoService.buscarMercadoPagoConfig();
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/mercado-pago/tipo-pagamento")
+    public ResponseEntity<Void> atualizarTipoPagamento(
+            @RequestBody com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigRequestDTO request) throws Exception {
+        configuracaoService.atualizarTipoPagamentoMercadoPago(request);
+        return ResponseEntity.ok().build();
+    }
 }

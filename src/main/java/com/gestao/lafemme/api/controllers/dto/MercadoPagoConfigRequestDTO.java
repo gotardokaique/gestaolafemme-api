@@ -1,9 +1,7 @@
 package com.gestao.lafemme.api.controllers.dto;
 
-import java.io.Serializable;
 import com.gestao.lafemme.api.enuns.TipoPagamentoMP;
 
-public record MercadoPagoConfigResponseDTO(
-    boolean conectado,
+public record MercadoPagoConfigRequestDTO(
     TipoPagamentoMP tipoPagamento
-) implements Serializable {}
+) {}

@@ -226,7 +226,7 @@ public class VendaService {
     }
 
     @Transactional
-    public com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse gerarLinkPagamento(Long id) throws Exception {
+    public com.gestao.lafemme.api.controllers.dto.GerarPagamentoResponse gerarLinkPagamento(Long id) throws Exception {
         Venda venda = buscarEntityPorId(id);
         if (!SitId.PENDENTE.equals(venda.getSituacao().getId())) {
             throw new BusinessException("Apenas vendas pendentes podem gerar link de pagamento.");
@@ -242,13 +242,19 @@ public class VendaService {
             dao.update(venda);
         }
 
-        com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse preference = mercadoPagoService.criarPreference(venda, configMp.accessToken());
-        
-        venda.setMpPreferenceId(preference.preferenceId());
-        venda.setMpPaymentLink(preference.paymentLink());
-        dao.update(venda);
-
-        return preference;
+        if (com.gestao.lafemme.api.enuns.TipoPagamentoMP.PIX.equals(configMp.tipoPagamento())) {
+            com.gestao.lafemme.api.controllers.dto.MercadoPagoPixResponse pix = mercadoPagoService.criarPagamentoPix(venda, configMp.accessToken());
+            venda.setMpQrCode(pix.qrCode());
+            venda.setMpQrCodeBase64(pix.qrCodeBase64());
+            dao.update(venda);
+            return new com.gestao.lafemme.api.controllers.dto.GerarPagamentoResponse("PIX", null, null, pix.qrCode(), pix.qrCodeBase64());
+        } else {
+            com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse preference = mercadoPagoService.criarPreference(venda, configMp.accessToken());
+            venda.setMpPreferenceId(preference.preferenceId());
+            venda.setMpPaymentLink(preference.paymentLink());
+            dao.update(venda);
+            return new com.gestao.lafemme.api.controllers.dto.GerarPagamentoResponse("CHECKOUT", preference.paymentLink(), preference.preferenceId(), null, null);
+        }
     }
 
     @Transactional
