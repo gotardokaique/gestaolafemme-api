@@ -33,28 +33,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final DAOController daoController;
 
     public JwtAuthenticationFilter(JwtTokenProvider tokenProvider,
-                                   DAOController daoController) {
+            DAOController daoController) {
         this.tokenProvider = tokenProvider;
         this.daoController = daoController;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+            HttpServletResponse response,
+            FilterChain filterChain)
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        String method = request.getMethod(); // 🟢 Adicionado para identificar o culpado (HEAD)
+        String method = request.getMethod();
 
-//        // 🟢 CORREÇÃO: Impede que métodos não suportados (como o HEAD do curl -I) 
-//        // cheguem nos Controllers e gerem o Erro 500.
-//        if ("HEAD".equalsIgnoreCase(method)) {
-//            response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-//            return;
-//        }
-
-        // 1️⃣ Extrai token
         String jwt = getJwtFromRequest(request);
 
         // 2️⃣ Se for rota pública e não tiver token, bypassa direto
@@ -101,16 +93,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            usuario,
-                            null,
-                            usuario.getAuthorities()
-                    );
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    usuario,
+                    null,
+                    usuario.getAuthorities());
 
             authentication.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-            );
+                    new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -124,11 +113,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String getJwtFromRequest(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
-        if (cookies == null) return null;
+        if (cookies == null)
+            return null;
 
         for (var cookie : cookies) {
             if ("auth_token".equals(cookie.getName())) {
-                String val = cookie.getValue();	
+                String val = cookie.getValue();
                 return StringUtils.hasText(val) ? val : null;
             }
         }
@@ -144,7 +134,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .limit(1)
                     .one();
 
-            if (usuario == null) return null;
+            if (usuario == null)
+                return null;
 
             // resolve unidade ativa
             UsuarioUnidade uu = daoController
@@ -171,10 +162,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isPublicAuthPath(String path) {
         return path.equals("/api/v1/auth/login")
-            || path.equals("/api/v1/auth/register")
-            || path.startsWith("/mp/")
-            || path.startsWith("/public/")
-            || path.equals("/favicon.ico")
-            || path.equals("/api/v1/auth/refresh");
+                || path.equals("/api/v1/auth/register")
+                || path.startsWith("/mp/")
+                || path.startsWith("/public/")
+                || path.equals("/favicon.ico")
+                || path.equals("/api/v1/auth/refresh");
     }
 }
