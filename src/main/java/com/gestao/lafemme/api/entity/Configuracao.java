@@ -17,6 +17,9 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import com.gestao.lafemme.api.enuns.TipoPagamentoMP;
 
 @Entity
 @Table(name = "configuracao")
@@ -55,6 +58,10 @@ public class Configuracao implements Serializable {
 
     @Column(name = "conf_mp_webhook_secret")
     private String mpWebhookSecret;
+
+    @Column(name = "conf_tipo_pagamento_mp", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private TipoPagamentoMP tipoPagamentoMp = TipoPagamentoMP.CHECKOUT;
 
     @Column(name = "conf_api_token", nullable = false, columnDefinition = "TEXT")
     private String apiToken;
@@ -204,5 +211,13 @@ public class Configuracao implements Serializable {
 
     public void setMpWebhookSecret(String mpWebhookSecret) {
         this.mpWebhookSecret = mpWebhookSecret;
+    }
+
+    public TipoPagamentoMP getTipoPagamentoMp() {
+        return tipoPagamentoMp;
+    }
+
+    public void setTipoPagamentoMp(TipoPagamentoMP tipoPagamentoMp) {
+        this.tipoPagamentoMp = tipoPagamentoMp;
     }
 }

@@ -49,7 +49,7 @@ public class VendaController {
     }
 
     @PostMapping("/{id}/gerar-link-pagamento")
-    public ResponseEntity<com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse> gerarLinkPagamento(@PathVariable Long id) throws Exception {
+    public ResponseEntity<com.gestao.lafemme.api.controllers.dto.GerarPagamentoResponse> gerarLinkPagamento(@PathVariable Long id) throws Exception {
         return ResponseEntity.ok(vendaService.gerarLinkPagamento(id));
     }
 }

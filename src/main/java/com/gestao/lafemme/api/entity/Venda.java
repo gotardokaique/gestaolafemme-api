@@ -59,6 +59,12 @@ public class Venda {
     @Column(name = "vend_mp_external_reference", length = 255)
     private String mpExternalReference;
 
+    @Column(name = "vend_mp_qr_code", length = 1000)
+    private String mpQrCode;
+
+    @Column(name = "vend_mp_qr_code_base64", columnDefinition = "TEXT")
+    private String mpQrCodeBase64;
+
     public Venda() {}
 
     @PrePersist
@@ -169,6 +175,22 @@ public class Venda {
 
     public void setMpExternalReference(String mpExternalReference) {
         this.mpExternalReference = mpExternalReference;
+    }
+
+    public String getMpQrCode() {
+        return mpQrCode;
+    }
+
+    public void setMpQrCode(String mpQrCode) {
+        this.mpQrCode = mpQrCode;
+    }
+
+    public String getMpQrCodeBase64() {
+        return mpQrCodeBase64;
+    }
+
+    public void setMpQrCodeBase64(String mpQrCodeBase64) {
+        this.mpQrCodeBase64 = mpQrCodeBase64;
     }
 
     @Override
