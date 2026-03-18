@@ -32,7 +32,7 @@ public class Configuracao implements Serializable {
     @Column(name = "conf_id")
     private Integer id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "conf_user_id", nullable = false, unique = true)
     private Usuario usuario;
 
@@ -85,7 +85,8 @@ public class Configuracao implements Serializable {
 
     @PrePersist
     protected void onCreate() {
-        if (this.createdAt == null) this.createdAt = new Date();
+        if (this.createdAt == null)
+            this.createdAt = new Date();
     }
 
     @PreUpdate
