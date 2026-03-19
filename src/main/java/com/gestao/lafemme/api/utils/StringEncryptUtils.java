@@ -1,5 +1,7 @@
 package com.gestao.lafemme.api.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,8 @@ import java.util.UUID;
 
 @Component
 public class StringEncryptUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(StringEncryptUtils.class);
 
     @Value("${api.public.app-secret}")
     private String appSecret;
@@ -93,11 +97,11 @@ public class StringEncryptUtils {
         }
     }
 
-    public String hashSha256(String value) {
+    public static String hashSha256(String value) {
         return hashAlgorithm(value, "SHA-256");
     }
 
-    public String hashMd5(String value) {
+    public static String hashMd5(String value) {
         return hashAlgorithm(value, "MD5");
     }
 
@@ -121,24 +125,23 @@ public class StringEncryptUtils {
         return new String(Base64.getUrlDecoder().decode(base64), StandardCharsets.UTF_8);
     }
 
-    public String generateRandomHash() {
+    public static String generateRandomHash() {
         return hashSha256(UUID.randomUUID().toString() + System.currentTimeMillis());
     }
 
-    public String generateRandomToken(int length) {
+    public static String generateRandomToken(int length) {
         byte[] randomBytes = new byte[length];
         new SecureRandom().nextBytes(randomBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes).substring(0, length);
     }
 
-    public boolean compareHashes(String hash1, String hash2) {
+    public static boolean compareHashes(String hash1, String hash2) {
         return MessageDigest.isEqual(
                 hash1.getBytes(StandardCharsets.UTF_8),
-                hash2.getBytes(StandardCharsets.UTF_8)
-        );
+                hash2.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String obfuscateString(String value, int visibleStart, int visibleEnd) {
+    public static String obfuscateString(String value, int visibleStart, int visibleEnd) {
         if (value == null || value.length() <= visibleStart + visibleEnd) {
             return value;
         }
@@ -148,7 +151,7 @@ public class StringEncryptUtils {
         return start + middle + end;
     }
 
-    private SecretKey buildAesKey(String a, String b) {
+    private static SecretKey buildAesKey(String a, String b) {
         try {
             List<String> keys = Arrays.asList(a, b);
             keys.sort(String::compareTo);
@@ -160,7 +163,7 @@ public class StringEncryptUtils {
         }
     }
 
-    private String hashAlgorithm(String value, String algorithm) {
+    private static String hashAlgorithm(String value, String algorithm) {
         try {
             MessageDigest digest = MessageDigest.getInstance(algorithm);
             byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
@@ -178,11 +181,57 @@ public class StringEncryptUtils {
         }
     }
 
-	public void encrypt(int size, Long valor) {
-		encrypt(2, valor.toString());		
-	}
-	
-	public void encrypt(int size, Integer valor) {
-		encrypt(2, valor.toString());		
-	}
+    public void encrypt(int size, Long valor) {
+        encrypt(2, valor.toString());
+    }
+
+    public void encrypt(int size, Integer valor) {
+        encrypt(2, valor.toString());
+    }
+
+    public static String randomUUID() {
+        return UUID.randomUUID().toString();
+    }
+
+    public static boolean validateSignature(String xSignature, String xRequestId, String dataId, String secret) {
+        try {
+            String ts = null;
+            String v1 = null;
+            for (String part : xSignature.split(",")) {
+                if (part.trim().startsWith("ts="))
+                    ts = part.trim().substring(3);
+                else if (part.trim().startsWith("v1="))
+                    v1 = part.trim().substring(3);
+            }
+
+            if (ts == null || v1 == null) {
+                return false;
+            }
+
+            String manifest = "id:" + dataId + ";request-id:" + xRequestId + ";ts:" + ts + ";";
+
+            javax.crypto.Mac sha256_HMAC = javax.crypto.Mac.getInstance("HmacSHA256");
+            javax.crypto.spec.SecretKeySpec secret_key = new javax.crypto.spec.SecretKeySpec(secret.getBytes("UTF-8"),
+                    "HmacSHA256");
+            sha256_HMAC.init(secret_key);
+
+            byte[] hash = sha256_HMAC.doFinal(manifest.getBytes("UTF-8"));
+
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1)
+                    hexString.append('0');
+                hexString.append(hex);
+            }
+
+            String calculated = hexString.toString();
+            boolean valid = calculated.equals(v1);
+
+            return valid;
+        } catch (Exception e) {
+            log.error("❌ Erro na validação de assinatura", e);
+            return false;
+        }
+    }
 }

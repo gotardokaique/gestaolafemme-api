@@ -28,6 +28,8 @@ public class MercadoPagoService {
     private String baseUrl;
 
     private final DAOController dao;
+    private final String urlPreference = "https://api.mercadopago.com/checkout/preferences";
+    private final String urlPayment = "https://api.mercadopago.com/v1/payments";
 
     public MercadoPagoService(DAOController dao) {
         this.dao = dao;
@@ -35,7 +37,6 @@ public class MercadoPagoService {
 
     public MercadoPagoPreferenceResponse criarPreference(Venda venda, String accessToken) throws Exception {
         RestTemplate restTemplate = new RestTemplate();
-        String url = "https://api.mercadopago.com/checkout/preferences";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -49,6 +50,7 @@ public class MercadoPagoService {
 
         List<Map<String, Object>> items = new ArrayList<>();
 
+        // Montamos os itens do pagamento
         if (movs.isEmpty()) {
             Map<String, Object> item = new HashMap<>();
             item.put("id", UUID.randomUUID().toString());
@@ -86,7 +88,7 @@ public class MercadoPagoService {
 
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.postForObject(url, requestEntity, Map.class);
+            Map<String, Object> response = restTemplate.postForObject(urlPreference, requestEntity, Map.class);
             if (response != null && response.containsKey("init_point") && response.containsKey("id")) {
                 return new MercadoPagoPreferenceResponse(
                         response.get("init_point").toString(),
@@ -100,7 +102,7 @@ public class MercadoPagoService {
 
     public Map<String, Object> consultarPagamento(String paymentId, String accessToken) throws Exception {
         RestTemplate restTemplate = new RestTemplate();
-        String url = "https://api.mercadopago.com/v1/payments/" + paymentId;
+        String url = urlPayment + paymentId;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
@@ -115,7 +117,6 @@ public class MercadoPagoService {
 
     public MercadoPagoPixResponse criarPagamentoPix(Venda venda, String accessToken) throws Exception {
         RestTemplate restTemplate = new RestTemplate();
-        String url = "https://api.mercadopago.com/v1/payments";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -138,7 +139,7 @@ public class MercadoPagoService {
 
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.postForObject(url, requestEntity, Map.class);
+            Map<String, Object> response = restTemplate.postForObject(urlPayment, requestEntity, Map.class);
 
             if (response != null && response.containsKey("point_of_interaction")) {
                 @SuppressWarnings("unchecked")

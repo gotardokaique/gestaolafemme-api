@@ -1,6 +1,5 @@
 package com.gestao.lafemme.api.services;
 
-
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -9,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.context.UserContext;
+import com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigResponseDTO;
 import com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigResponseDTO;
@@ -18,6 +18,8 @@ import com.gestao.lafemme.api.db.TransactionDB;
 import com.gestao.lafemme.api.entity.Configuracao;
 import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
+import com.gestao.lafemme.api.services.exceptions.BusinessException;
+import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 import com.gestao.lafemme.api.utils.StringEncryptUtils;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -52,7 +54,7 @@ public class ConfiguracaoService {
 
             trans.update(config);
 
-        } catch (EntityNotFoundException  e) {
+        } catch (EntityNotFoundException e) {
             config = new Configuracao();
             Usuario usuario = trans.selectById(Usuario.class, userId);
             if (usuario == null) {
@@ -116,7 +118,7 @@ public class ConfiguracaoService {
             config.setAtivo(false);
             config.setUpdatedAt(new Date());
             trans.update(config);
-        } catch (EntityNotFoundException  e) {
+        } catch (EntityNotFoundException e) {
             return;
         }
     }
@@ -124,13 +126,13 @@ public class ConfiguracaoService {
     @Transactional
     public EmailConfigResponseDTO salvarEmailConfig(EmailConfigRequestDTO request) throws Exception {
         Long userId = UserContext.getIdUsuario();
-        
+
         if (request.getEmailSenhaApp() != null && request.getEmailSenhaApp().length() > 50) {
             throw new IllegalArgumentException("Senha de app excessivamente longa");
         }
-        
+
         String hash = encryptUtils.encrypt(16, request.getEmailSenhaApp());
-        
+
         Configuracao config;
         try {
             config = dao.select()
@@ -170,7 +172,8 @@ public class ConfiguracaoService {
 
         Configuracao config = configs.isEmpty() ? null : configs.get(0);
         String emailRemetente = (config != null) ? config.getEmailRemetente() : null;
-        boolean hasSenhaApp = (config != null && config.getEmailSenhaApp() != null && !config.getEmailSenhaApp().isEmpty());
+        boolean hasSenhaApp = (config != null && config.getEmailSenhaApp() != null
+                && !config.getEmailSenhaApp().isEmpty());
         return new EmailConfigResponseDTO(emailRemetente, hasSenhaApp);
     }
 
@@ -182,7 +185,7 @@ public class ConfiguracaoService {
                     .from(Configuracao.class)
                     .where("usuario.id", Condicao.EQUAL, userId)
                     .one();
-                    
+
             config.setEmailRemetente(null);
             config.setEmailSenhaApp(null);
             config.setUpdatedAt(new Date());
@@ -219,7 +222,7 @@ public class ConfiguracaoService {
         config.setMpRefreshToken(response.getRefreshToken());
         config.setMpPublicKey(response.getPublicKey());
         config.setMpUserId(response.getUserId() != null ? String.valueOf(response.getUserId()) : null);
-        
+
         if (response.getExpiresIn() != null) {
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.SECOND, response.getExpiresIn().intValue());
@@ -234,40 +237,42 @@ public class ConfiguracaoService {
             trans.update(config);
         }
     }
+
     @Transactional(readOnly = true)
     public MercadoPagoConfigResponseDTO buscarMercadoPagoConfig() throws Exception {
-    	Unidade unidade = UserContext.getUnidade();
-  
+        Unidade unidade = UserContext.getUnidade();
+
         if (unidade == null) {
             return new MercadoPagoConfigResponseDTO(false, null);
         }
-        
+
         List<Configuracao> configs;
         try {
-        	configs = dao.select()
-        			.from(Configuracao.class)
-        			.where("unidade.id", Condicao.EQUAL, unidade.getId())
-        			.list();
-        	
+            configs = dao.select()
+                    .from(Configuracao.class)
+                    .where("unidade.id", Condicao.EQUAL, unidade.getId())
+                    .list();
+
         } catch (Exception e) {
-        	e.printStackTrace();
+            e.printStackTrace();
             return new MercadoPagoConfigResponseDTO(false, null);
         }
 
         Configuracao config = configs.isEmpty() ? null : configs.get(0);
-        
+
         return new MercadoPagoConfigResponseDTO(
-            config != null && config.getMpAccessToken() != null,
-            config != null ? config.getTipoPagamentoMp() : null
-        );
+                config != null && config.getMpAccessToken() != null,
+                config != null ? config.getTipoPagamentoMp() : null);
     }
-    
+
     @Transactional
-    public void atualizarTipoPagamentoMercadoPago(com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigRequestDTO request) throws Exception {
-    	Unidade unidade = UserContext.getUnidade();
+    public void atualizarTipoPagamentoMercadoPago(
+            com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigRequestDTO request) throws Exception {
+        Unidade unidade = UserContext.getUnidade();
         Long userId = UserContext.getIdUsuario();
-        if (unidade == null) return;
-        
+        if (unidade == null)
+            return;
+
         Configuracao config;
         try {
             config = dao.select()
@@ -277,13 +282,14 @@ public class ConfiguracaoService {
         } catch (Exception e) {
             config = new Configuracao();
             Usuario usuario = trans.selectById(Usuario.class, userId);
-            if (usuario == null) throw new IllegalStateException("Usuário não encontrado");
+            if (usuario == null)
+                throw new IllegalStateException("Usuário não encontrado");
             config.setUsuario(usuario);
             config.setApiToken("");
             config.setAtivo(true);
             config.setUnidade(unidade);
         }
-        
+
         config.setTipoPagamentoMp(request.tipoPagamento());
         config.setUpdatedAt(new Date());
 
@@ -295,48 +301,61 @@ public class ConfiguracaoService {
     }
 
     @Transactional(readOnly = true)
-    public com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP getMercadoPagoConfig() {
+    public ConfiguracaoMP getMercadoPagoConfig() {
         Unidade unidade = UserContext.getUnidade();
-  
+
         if (unidade == null) {
             return null;
         }
-        
-        List<Configuracao> configs = dao.select()
-                .from(Configuracao.class)
-                .where("unidade.id", Condicao.EQUAL, unidade.getId())
-                .list();
-        
-        Configuracao config = configs.isEmpty() ? null : configs.get(0);
-        if (config == null || config.getMpAccessToken() == null || config.getMpAccessToken().isBlank()) {
+        Configuracao config;
+        try {
+            config = dao.select()
+                    .from(Configuracao.class)
+                    .where("unidade.id", Condicao.EQUAL, unidade.getId())
+                    .one();
+
+        } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
-        
-        return new com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP(
+
+        return new ConfiguracaoMP(
                 config.getMpAccessToken(),
                 config.getMpWebhookSecret(),
-                config.getTipoPagamentoMp()
-        );
+                config.getTipoPagamentoMp());
     }
-    
+
     @Transactional(readOnly = true)
-    public Configuracao buscarPorMpUserId(String mpUserId) {
-        if (mpUserId == null || mpUserId.isBlank()) return null;
-        List<Configuracao> configs = dao.select()
-                .from(Configuracao.class)
-                .where("mpUserId", Condicao.EQUAL, mpUserId)
-                .list();
-        return configs.isEmpty() ? null : configs.get(0);
+    public Configuracao buscarPorMpUserId(String mpUserId) throws Exception {
+        if (mpUserId == null || mpUserId.isBlank()) {
+            throw new BusinessException("MP User ID é obrigatório.");
+        }
+        try {
+            Configuracao config = dao.select()
+                    .from(Configuracao.class)
+                    .where("mpUserId", Condicao.EQUAL, mpUserId)
+                    .one();
+            return config;
+
+        } catch (NotFoundException e) {
+            throw new NotFoundException("Configuração não encontrada.");
+        }
     }
+
     @Transactional(readOnly = true)
     public Configuracao buscarPrimeiraConfiguracaoValida() {
-        List<Configuracao> configs = dao.select()
-                .from(Configuracao.class)
-                .list();
-        for (Configuracao c : configs) {
-            if (c.getMpAccessToken() != null && !c.getMpAccessToken().isBlank()) {
-                return c;
+        List<Configuracao> configs;
+        try {
+            configs = dao.select().from(Configuracao.class)
+                    .list();
+
+            for (Configuracao config : configs) {
+                if (config.getMpAccessToken() != null && !config.getMpAccessToken().isBlank()) {
+                    return config;
+                }
             }
+        } catch (Exception e) {
+            throw new BusinessException("Erro ao buscar configuração.");
         }
         return null;
     }
