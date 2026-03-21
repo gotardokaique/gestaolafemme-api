@@ -348,7 +348,6 @@ public class ConfiguracaoService {
         try {
             configs = dao.select().from(Configuracao.class)
                     .list();
-
             for (Configuracao config : configs) {
                 if (config.getMpAccessToken() != null && !config.getMpAccessToken().isBlank()) {
                     return config;

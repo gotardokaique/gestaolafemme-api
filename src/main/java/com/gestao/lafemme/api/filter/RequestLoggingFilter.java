@@ -1,6 +1,7 @@
 package com.gestao.lafemme.api.filter;
 
 import com.gestao.lafemme.api.security.controller.TokenService;
+import com.gestao.lafemme.api.utils.HttpUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,12 +20,8 @@ import java.util.Set;
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
-
     private static final String ANON = "anônimo";
-
-    private static final Set<String> SILENT_PATHS = Set.of(
-            "/actuator/health",
-            "/favicon.ico");
+    private static final Set<String> SILENT_PATHS = Set.of("/actuator/health", "/favicon.ico");
 
     private final TokenService tokenService;
 
@@ -42,51 +39,29 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain chain) throws ServletException, IOException {
 
-        String method = request.getMethod();
-        String ip = getClientIp(request);
-        String email = resolveEmail(request);
-        String url = request.getRequestURI();
-        String query = request.getQueryString();
-        String fullUrl = query != null ? url + "?" + query : url;
+        String fullUrl = request.getQueryString() != null
+                ? request.getRequestURI() + "?" + request.getQueryString()
+                : request.getRequestURI();
 
         chain.doFilter(request, response);
 
         log.info("[{}] {} | IP: {} | Usuário: {} → endpoint: {}",
-                method, response.getStatus(), ip, email, fullUrl);
+                request.getMethod(),
+                response.getStatus(),
+                HttpUtils.getClientIp(request), // ← reutilizando
+                resolveEmail(request),
+                fullUrl);
     }
-
-    // -------------------------------------------------------------------------
 
     private String resolveEmail(HttpServletRequest request) {
         try {
             String token = tokenService.getTokenFromRequest(request);
             if (token == null)
                 return ANON;
-
             String email = tokenService.validateToken(token);
             return (email != null && !email.isBlank()) ? email : ANON;
         } catch (Exception e) {
             return ANON;
         }
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("CF-Connecting-IP");
-        if (isValidIp(ip))
-            return ip.trim();
-
-        ip = request.getHeader("X-Forwarded-For");
-        if (isValidIp(ip))
-            return ip.split(",")[0].trim();
-
-        ip = request.getHeader("X-Real-IP");
-        if (isValidIp(ip))
-            return ip.trim();
-
-        return request.getRemoteAddr();
-    }
-
-    private boolean isValidIp(String ip) {
-        return ip != null && !ip.isBlank() && !"unknown".equalsIgnoreCase(ip);
     }
 }

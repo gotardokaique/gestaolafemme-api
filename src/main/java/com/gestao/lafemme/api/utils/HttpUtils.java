@@ -11,7 +11,9 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.net.InetAddress;
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public final class HttpUtils {
@@ -25,6 +27,9 @@ public final class HttpUtils {
     private static final String HEADER_CF_CONNECTING_IP = "CF-Connecting-IP";
     private static final String HEADER_USER_AGENT = "User-Agent";
     private static final String UNKNOWN_IP = "unknown";
+
+    private static final Set<String> SENSITIVE_HEADERS = Set.of(
+            "authorization", "cookie", "x-api-key", "x-auth-token");
 
     private HttpUtils() {
     }
@@ -51,9 +56,28 @@ public final class HttpUtils {
     }
 
     public static String getClientIp() {
-        return getCurrentRequest()
-                .map(HttpUtils::getClientIp)
-                .orElse(UNKNOWN_IP);
+        return getCurrentRequest().map(HttpUtils::getClientIp).orElse(UNKNOWN_IP);
+    }
+
+    public static boolean isIpAllowed(HttpServletRequest request, List<String> allowedIps) {
+        String clientIp = getClientIp(request);
+        boolean allowed = allowedIps.contains(clientIp);
+        if (!allowed)
+            log.warn("Acesso bloqueado para IP não autorizado: {}", clientIp);
+        return allowed;
+    }
+
+    public static boolean isPrivateIp(String ip) {
+        if (ip == null || ip.isBlank())
+            return false;
+        return ip.startsWith("10.")
+                || ip.startsWith("192.168.")
+                || ip.startsWith("172.16.") || ip.startsWith("172.17.")
+                || ip.startsWith("172.18.") || ip.startsWith("172.19.")
+                || ip.startsWith("172.20.") || ip.startsWith("172.30.")
+                || ip.startsWith("172.31.")
+                || ip.equals("127.0.0.1")
+                || ip.equals("::1");
     }
 
     public static String getUserAgent(HttpServletRequest request) {
@@ -69,28 +93,45 @@ public final class HttpUtils {
         return Optional.empty();
     }
 
+    public static Optional<String> getHeader(HttpServletRequest request, String headerName) {
+        return Optional.ofNullable(request.getHeader(headerName));
+    }
+
+    public static Optional<String> getOrigin(HttpServletRequest request) {
+        return Optional.ofNullable(request.getHeader("Origin"));
+    }
+
+    public static Optional<String> getReferer(HttpServletRequest request) {
+        return Optional.ofNullable(request.getHeader("Referer"));
+    }
+
+    public static Map<String, String> getAllHeadersSafe(HttpServletRequest request) {
+        Map<String, String> headers = new LinkedHashMap<>();
+        Enumeration<String> names = request.getHeaderNames();
+        if (names == null)
+            return headers;
+        while (names.hasMoreElements()) {
+            String name = names.nextElement();
+            String value = SENSITIVE_HEADERS.contains(name.toLowerCase())
+                    ? "***"
+                    : request.getHeader(name);
+            headers.put(name, value);
+        }
+        return Collections.unmodifiableMap(headers);
+    }
+
+    /** @deprecated use getAllHeadersSafe */
+    @Deprecated
+    public static Map<String, String> getAllHeaders(HttpServletRequest request) {
+        return getAllHeadersSafe(request);
+    }
+
     public static String getRequestPath(HttpServletRequest request) {
         return request.getRequestURI();
     }
 
     public static String getHttpMethod(HttpServletRequest request) {
         return request.getMethod();
-    }
-
-    public static Map<String, String> getAllHeaders(HttpServletRequest request) {
-        Map<String, String> headers = new LinkedHashMap<>();
-        Enumeration<String> names = request.getHeaderNames();
-        if (names != null) {
-            while (names.hasMoreElements()) {
-                String name = names.nextElement();
-                headers.put(name, request.getHeader(name));
-            }
-        }
-        return Collections.unmodifiableMap(headers);
-    }
-
-    public static Optional<String> getHeader(HttpServletRequest request, String headerName) {
-        return Optional.ofNullable(request.getHeader(headerName));
     }
 
     public static boolean isAjaxRequest(HttpServletRequest request) {
@@ -100,6 +141,35 @@ public final class HttpUtils {
     public static boolean isSecure(HttpServletRequest request) {
         return request.isSecure()
                 || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
+    }
+
+    public static boolean isJsonRequest(HttpServletRequest request) {
+        String ct = request.getContentType();
+        return ct != null && ct.contains("application/json");
+    }
+
+    public static boolean isMultipartRequest(HttpServletRequest request) {
+        String ct = request.getContentType();
+        return ct != null && ct.startsWith("multipart/");
+    }
+
+    public static boolean isBotRequest(HttpServletRequest request) {
+        String ua = getUserAgent(request).toLowerCase();
+        return ua.contains("bot") || ua.contains("crawler") || ua.contains("spider")
+                || ua.contains("curl") || ua.contains("wget") || ua.contains("python-requests");
+    }
+
+    public static Map<String, String> getQueryParams(HttpServletRequest request) {
+        Map<String, String> params = new LinkedHashMap<>();
+        request.getParameterMap().forEach((key, values) -> {
+            if (values != null && values.length > 0)
+                params.put(key, values[0]);
+        });
+        return Collections.unmodifiableMap(params);
+    }
+
+    public static boolean hasQueryParam(HttpServletRequest request, String param) {
+        return request.getParameter(param) != null;
     }
 
     public static Optional<Cookie> getCookie(HttpServletRequest request, String name) {
@@ -114,36 +184,31 @@ public final class HttpUtils {
         return getCookie(request, name).map(Cookie::getValue);
     }
 
-    /**
-     * Cria cookie seguro (HttpOnly, Secure, SameSite=Strict) conforme padrão
-     * 
-     * @param name     nome do cookie
-     * @param value    valor do cookie
-     * @param maxAge   tempo de vida em segundos (negativo = sessão)
-     * @param response HttpServletResponse para adicionar o Set-Cookie header
-     *                 manualmente
-     */
     public static void addSecureCookie(HttpServletResponse response,
-            String name,
-            String value,
-            int maxAge) {
-        // Cookie com SameSite=Strict precisa ser setado via Set-Cookie header
-        // manualmente
-        // pois a API Cookie do Servlet não suporta SameSite diretamente
-        String cookieValue = name + "=" + value
+            String name, String value, int maxAge) {
+        String safeValue = URLEncoder.encode(value, StandardCharsets.UTF_8);
+        String cookieValue = name + "=" + safeValue
                 + "; Max-Age=" + maxAge
                 + "; Path=/"
                 + "; HttpOnly"
                 + "; Secure"
                 + "; SameSite=Strict";
         response.addHeader("Set-Cookie", cookieValue);
-        log.info("Cookie seguro '{}' adicionado à resposta", name);
+        log.debug("Cookie seguro '{}' adicionado à resposta", name);
     }
 
     public static void removeCookie(HttpServletResponse response, String name) {
-        String cookieValue = name + "=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict";
-        response.addHeader("Set-Cookie", cookieValue);
-        log.info("Cookie '{}' removido da resposta", name);
+        response.addHeader("Set-Cookie",
+                name + "=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict");
+        log.debug("Cookie '{}' removido da resposta", name);
+    }
+
+    public static void addSecurityHeaders(HttpServletResponse response) {
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+        response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     }
 
     public static <T> ResponseEntity<T> ok(T body) {
@@ -186,6 +251,12 @@ public final class HttpUtils {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(erroMap(mensagem));
     }
 
+    public static ResponseEntity<Map<String, String>> tooManyRequests(String mensagem, long retryAfter) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(retryAfter))
+                .body(erroMap(mensagem));
+    }
+
     public static ResponseEntity<Map<String, String>> internalError(String mensagem) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(erroMap(mensagem));
     }
@@ -198,47 +269,6 @@ public final class HttpUtils {
         return ResponseEntity.ok(Map.of("mensagem", mensagem));
     }
 
-    // =======================
-    // UTILITÁRIOS GERAIS
-    // =======================
-
-    public static Map<String, String> erroMap(String mensagem) {
-        return Map.of("erro", mensagem);
-    }
-
-    private static boolean isValidIp(String ip) {
-        return ip != null && !ip.isBlank() && !UNKNOWN_IP.equalsIgnoreCase(ip);
-    }
-
-    public static String getLocalHostname() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            log.warn("Não foi possível obter o hostname do servidor: {}", e.getMessage());
-            return "unknown-host";
-        }
-    }
-
-    /**
-     * Verifica se o IP da requisição está na lista de IPs permitidos (whitelist).
-     *
-     * @param request    requisição atual
-     * @param allowedIps lista de IPs permitidos
-     * @return true se o IP do cliente estiver na lista
-     */
-    public static boolean isIpAllowed(HttpServletRequest request, List<String> allowedIps) {
-        String clientIp = getClientIp(request);
-        boolean allowed = allowedIps.contains(clientIp);
-        if (allowed == false) {
-            log.warn("Acesso bloqueado para IP não autorizado: {}", clientIp);
-        }
-        return allowed;
-    }
-
-    /**
-     * Gera um log para auditoria.
-     * Formato: METHOD PATH | IP: xxx | UA: xxx
-     */
     public static void logAcesso(HttpServletRequest request) {
         log.info("{} {} | IP: {} | UA: {}",
                 getHttpMethod(request),
@@ -247,33 +277,29 @@ public final class HttpUtils {
                 getUserAgent(request));
     }
 
-    /**
-     * Verifica se Content-Type é application/json.
-     */
-    public static boolean isJsonRequest(HttpServletRequest request) {
-        String contentType = request.getContentType();
-        return contentType != null && contentType.contains("application/json");
+    public static void logSecurityEvent(String evento, HttpServletRequest request, String detalhe) {
+        log.warn("[SECURITY] {} | IP: {} | UA: {} | Path: {} | Detalhe: {}",
+                evento,
+                getClientIp(request),
+                getUserAgent(request),
+                getRequestPath(request),
+                detalhe);
     }
 
-    public static Map<String, String> getQueryParams(HttpServletRequest request) {
-        Map<String, String> params = new LinkedHashMap<>();
-        request.getParameterMap().forEach((key, values) -> {
-            if (values != null && values.length > 0) {
-                params.put(key, values[0]);
-            }
-        });
-        return Collections.unmodifiableMap(params);
+    public static Map<String, String> erroMap(String mensagem) {
+        return Map.of("erro", mensagem);
     }
 
-    public static boolean hasQueryParam(HttpServletRequest request, String param) {
-        return request.getParameter(param) != null;
+    public static String getLocalHostname() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.warn("Não foi possível obter o hostname: {}", e.getMessage());
+            return "unknown-host";
+        }
     }
 
-    public static Optional<String> getOrigin(HttpServletRequest request) {
-        return Optional.ofNullable(request.getHeader("Origin"));
-    }
-
-    public static Optional<String> getReferer(HttpServletRequest request) {
-        return Optional.ofNullable(request.getHeader("Referer"));
+    private static boolean isValidIp(String ip) {
+        return ip != null && !ip.isBlank() && !UNKNOWN_IP.equalsIgnoreCase(ip);
     }
 }

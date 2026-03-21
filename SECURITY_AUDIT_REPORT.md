@@ -810,3 +810,78 @@ Manter a lista restrita é correto. Apenas documentar que não se usa `Authoriza
 20. **#20** — Fortalecer senha temporária (opcional)
 21. **#21** — Mover bloqueio HEAD para SecurityConfig
 22. **#22** — Documentar política de CORS headers
+
+---
+
+## 🛡️ Atualização (2026-03-20) - Varredura Completa e Validação de Achados
+
+### Validação dos Achados Anteriores
+
+1. **Redis rate limiting race condition**
+   - **Status:** ❌ AINDA VULNERÁVEL
+   - **Evidência:** Em `RegisterUserBO.java`, `incrementarAtomico` chama o Spring Data Redis para incrementar a chave (`increment(key)`) e numa operação separada faz `expire(key)`. Não é atômico (como num Lua script). Um crash entre incremento e expiração deixa a chave presa, resultando em bloqueios eternos indevidos.
+2. **IP spoofing via X-Forwarded-For**
+   - **Status:** ✅ CORRIGIDO
+   - **Evidência:** `extrairIpCliente` varre os proxies aprovados em `app.security.trusted-proxies`. Apenas confia no X-Forwarded-For se a origem primária TCP (`remoteAddr`) coincidir com os IPs do Nginx/LoadBalancer local em deploy real.
+3. **Silent account lock bypass**
+   - **Status:** ✅ CORRIGIDO
+   - **Evidência:** O fluxo de `processarLogin` valida os bloqueios do Redis antes de executar `.authenticate()`. Não há APIs de resgate (reset password) expostas com falha e sem login prévio atuando como token-bypass.
+4. **IDOR risk no QueryBuilder multi-tenant**
+   - **Status:** ✅ CORRIGIDO
+   - **Evidência:** Em `QueryBuilder.java`, o método sintático `.id(Long)` foi refatorado. Agora previne saltos multi-tenant, sendo construído interligado `.where("id", Condicao.EQUAL, pk)`, mantendo integralmente o `where("unidade.id", ...)` declarado nos Services.
+5. **Conflito entre dois sistemas de rate limiting (dead code)**
+   - **Status:** ✅ CORRIGIDO
+   - **Evidência:** Verificação geral por `Filters` desativados concluída com sucesso. Nenhum código paralelo concorre com a restrição explícita do Controller `RegisterUserBO`.
+
+---
+
+### Novos Achados (Avaliação Multi-Tenant, MP & Deploy)
+
+### [#23] 🔴 CRÍTICA | A04 Insecure Design / SSRF Multi-Tenant - Atribuição Global e Aleatória de Webhooks
+**Arquivo:** `MercadoPagoWebhookController.java` e `ConfiguracaoService.java`
+**Onde/Evidência:** 
+Na ausência do parâmetro `data.userId` ou falha de leitura, a aplicação executa o método fallback cego `configuracaoService.buscarPrimeiraConfiguracaoValida()`. Em essência, este busca varrerá todos os dados ignorando inquilinos (`dao.select().from(Configuracao.class).list();`) e atrelará à primeira configurada válida.
+**Impacto:** Permite que atacantes ou atrasos lógicos do MP redirecionem e confirmem faturas operacionais (Vendas Concluídas) pagas externamente para ateliês _aleatórios_ ou o primário absoluto em risco isolado global e severo.
+**Recomendação:** Destruir de imediato a chamada e método arquitetural `buscarPrimeiraConfiguracaoValida`. Falhas no callback da identificação isolada exigem retorno `400 Bad Request` na ponta externa, jamais redirecionamento aleatório.
+
+---
+
+### [#24] 🟠 ALTA | A04 Insecure Design & CSRF - Webhook OAuth Callback Sem Proteção
+**Arquivo:** `MercadoPagoCallbackController.java`
+**Onde/Evidência:**
+A rota `mp/callback` faz acesso irrestrito (`.permitAll()`). A seguir invoca `configuracaoService.salvarMercadoPagoConfig(tokenResponse)`, solicitando `UserContext.getIdUsuario()`. Entretanto, o estrito formato `SameSite=Strict` dos cookies anulam o tráfego do token em redirects top-level cruzados na jornada do MP, produzindo o colapso e `Error 500`. Ademais, a rota desconsidera verificações reais matemáticas e lógicas do token local contra a _Hash_ injetada no `State` (`state`).
+**Impacto:** Impede locatários originais de finalizarem emparelhamentos autênticos. Exponencia riscos do sequestro CSRF, viabilizando que agressores sobreponham carteiras e Tokens de controle e liquidação em suas origens logadas caso explorem o clique do inquilino.
+**Recomendação:** Cacheamento e conferência persistente entre Hash da Sessão original de `/mp/autorizar` até o `State Parameter` emitido em retorno. Para resgatar o contexto funcional, aplique `SameSite=Lax` na criação em `TokenService` ou armazene chaves pendentes isoladas pelo `State` e re-hidrate o registro de configuração com base em um mapeamento seguro (em memória).
+
+---
+
+### [#25] 🟠 ALTA | A02 Cryptographic Failures - Armazenamento de Tokens MP em Texto Aberto
+**Arquivo:** `Configuracao.java`
+**Onde/Evidência:**
+As credenciais máximas de cobrança e saque não encontram defesas preventivas no banco relacional.
+```java
+@Column(name = "conf_mp_access_token", columnDefinition = "TEXT")
+private String mpAccessToken;
+```
+**Impacto:** Risco financeiro drástico entre dezenas de clientes ativos. A quebra mínima do banco através de uma exploração paralela, injeção ou backup vazado abre margem para tomada massiva monetária (transações abertas) dos inquilinos integrados pela falta de blindagem _at-rest_.
+**Recomendação:** Reaproveitar a mecânica prévia elaborada no utilitário de Senhas App/E-mails do SaaS, invocando de forma assíncrona o `StringEncryptUtils.encrypt()` e `.decrypt()` nos Getters e Setters dos Refresh e Access Tokens ao se comunicar com a MercadoPago.
+
+---
+
+### [#26] 🟠 ALTA | A01 Broken Access Control - Omissão de Permissão Sistêmica no Painel
+**Arquivo:** `ConfiguracaoService.java` (atualizarTipoPagamentoMercadoPago)
+**Onde/Evidência:** 
+```java
+config = dao.select().from(Configuracao.class).where("unidade.id", Condicao.EQUAL, unidade.getId()).one();
+```
+**Impacto:** Nenhum escrutínio de credencial restrita ("ADMIN"). Um funcionário de baixo prestígio logado legalmente no Ateliê consegue explorar APIs em `Configuracoes` da entidade (ex. alterando o formato ou Pix base da plataforma inteira na Unidade), pois o método não isola sub-entidades da mesa de locatário.
+**Recomendação:** Acessos que alteram configurações essenciais unificadas como transições MP devem incluir programativamente e isoladamente avaliações hierárquicas (`"ADMIN".equalsIgnoreCase(usuarioAux.getPerfilUsuario().getNome())`) assim como estabelecido no cadastro.
+
+---
+
+### [#27] 🟡 MÉDIA | A08 Software & Data Integrity Failures - Injeção Base Cativa no Deploy
+**Arquivo:** `db/migration/V6__setupTestUser.sql`
+**Onde/Evidência:**
+A migração imutável empurra dados globais massivos da modelagem de inicialização base contendo nomes e chaves com permissões plenas de Administrador. (`kaiquecgotardo@gmail.com`)
+**Impacto:** Backdoors padrão no host. Em deploy isolados da produção, credenciais abertas representam portas cegas para criminosos que assumem as raízes hardcoded do projeto (CWE-259).
+**Recomendação:** A migração do perfil e base fixa de Unidades não devem ser efetuadas obrigatoriamente acopladas ao Flyway. Remova e faça o versionamento exclusivo entre esquemas ou desassociando aos `data.sql` dedicados a `@Profile("dev")`. Gere uma Migration subjacente em V14 limpando este usuário caso o SaaS já possua instâncias validades hospedadas.
