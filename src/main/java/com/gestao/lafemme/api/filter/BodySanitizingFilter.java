@@ -36,7 +36,7 @@ public class BodySanitizingFilter extends OncePerRequestFilter {
             } else if (isJson(contentType) || isForm(contentType)) {
                 CachedBodyRequestWrapper wrapped = new CachedBodyRequestWrapper(request);
                 sanitizarBody(wrapped.getBodyAsString());
-                chain.doFilter(wrapped, response);
+                chain.doFilter(wrapped, response); 
 
             } else {
                 chain.doFilter(request, response);
