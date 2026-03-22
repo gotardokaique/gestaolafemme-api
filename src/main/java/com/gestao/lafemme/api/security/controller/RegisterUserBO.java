@@ -31,6 +31,8 @@ import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.entity.UsuarioUnidade;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
+import com.gestao.lafemme.api.utils.HttpUtils;
+import com.gestao.lafemme.api.utils.StringUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -64,9 +66,6 @@ public class RegisterUserBO {
     private static final long TENTATIVA_TTL_MINUTOS = 30;
     private static final long BLOQUEIO_TTL_MINUTOS = 1500;
 
-    private static final java.util.regex.Pattern REGEX_EMAIL = java.util.regex.Pattern
-            .compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
-
     private final UsuarioServiceValidacao usuarioServiceValidacao;
     private final TransactionDB trans;
     private final DAOController dao;
@@ -78,17 +77,21 @@ public class RegisterUserBO {
     }
 
     public Boolean validarSenhaForte(String senha) {
-        if (senha == null) return false;
-        if (senha.length() < 8) return false;
+        if (senha == null)
+            return false;
+        if (senha.length() < 8)
+            return false;
 
         boolean temMaiuscula = senha.matches(".*[A-Z].*");
         boolean temMinuscula = senha.matches(".*[a-z].*");
         boolean temNumero = senha.matches(".*[0-9].*");
 
-        if (!temMaiuscula || !temMinuscula || !temNumero) return false;
+        if (!temMaiuscula || !temMinuscula || !temNumero)
+            return false;
 
         // evita repetições tipo "aaa" / "111"
-        if (senha.matches(".*(.)\\1{2,}.*")) return false;
+        if (senha.matches(".*(.)\\1{2,}.*"))
+            return false;
 
         return true;
     }
@@ -115,14 +118,14 @@ public class RegisterUserBO {
 
     public ResponseEntity<?> processarLogin(String emailRaw, String senha, HttpServletRequest request) {
 
-        String email = (emailRaw == null ? "" : emailRaw).trim().toLowerCase();
+        String email = StringUtils.normalize(emailRaw);
 
-        if (!REGEX_EMAIL.matcher(email).matches()) {
+        if (StringUtils.isEmail(email) == false) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "Formato de e-mail inválido"));
         }
 
-        String ip = extrairIpCliente(request);
+        String ip = HttpUtils.getClientIp(request);
 
         String keyEmail = "login:attempt:email:" + email;
         String keyIpEmail = "login:attempt:ip_email:" + ip + ":" + email;
@@ -143,8 +146,7 @@ public class RegisterUserBO {
 
         try {
             Authentication auth = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, senha)
-            );
+                    new UsernamePasswordAuthenticationToken(email, senha));
 
             Usuario user = (Usuario) auth.getPrincipal();
 
@@ -288,4 +290,3 @@ public class RegisterUserBO {
         return set;
     }
 }
-

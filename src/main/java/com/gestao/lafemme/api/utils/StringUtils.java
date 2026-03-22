@@ -283,4 +283,14 @@ public final class StringUtils {
             return false;
         return removeAccents(text).toLowerCase().contains(removeAccents(search).toLowerCase());
     }
+
+    public static String normalize(String value) {
+        if (isBlank(value))
+            return "";
+        return value.trim().toLowerCase().replace(" ", "");
+    }
+
+    public static boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
 }

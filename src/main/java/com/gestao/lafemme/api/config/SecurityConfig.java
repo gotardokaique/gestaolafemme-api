@@ -70,8 +70,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/api/v1/auth/login").permitAll()
-                .requestMatchers("/mp/webhook/**").permitAll()
-                .requestMatchers("/mp/oauth/callback").permitAll()
+                .requestMatchers("/mp/**").permitAll()
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/favicon.ico").permitAll()
                 .anyRequest().authenticated());

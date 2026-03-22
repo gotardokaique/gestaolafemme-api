@@ -1,11 +1,14 @@
 package com.gestao.lafemme.api.security.controller;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.WebUtils;
 
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.security.JwtTokenProvider;
+import com.gestao.lafemme.api.utils.HttpUtils;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +16,6 @@ import jakarta.servlet.http.HttpServletRequest;
 @Service
 public class TokenService {
 
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final int MAX_TOKEN_LENGTH = 2048;
 
     private final JwtTokenProvider tokenProvider;
@@ -38,7 +40,7 @@ public class TokenService {
             return null;
         }
 
-        if (!tokenProvider.validateToken(token)) {
+        if (tokenProvider.validateToken(token) == false) {
             return null;
         }
 
@@ -46,12 +48,12 @@ public class TokenService {
     }
 
     public String getTokenFromRequest(HttpServletRequest request) {
-        if (request == null) return null;
+        if (request == null)
+            return null;
 
-        Cookie cookie = WebUtils.getCookie(request, "auth_token");
-        if (cookie != null && StringUtils.hasText(cookie.getValue())) {
-            String token = cookie.getValue();
-            return token.length() <= MAX_TOKEN_LENGTH ? token : null;
+        Optional<String> token = HttpUtils.getCookieValue(request, "auth_token");
+        if (token.isPresent() && StringUtils.hasText(token.get())) {
+            return token.get().length() <= MAX_TOKEN_LENGTH ? token.get() : null;
         }
         return null;
     }

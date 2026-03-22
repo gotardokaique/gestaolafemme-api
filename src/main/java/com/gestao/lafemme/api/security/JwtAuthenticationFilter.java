@@ -11,7 +11,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +19,7 @@ import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.entity.UsuarioUnidade;
 import com.gestao.lafemme.api.utils.HttpUtils;
+import com.gestao.lafemme.api.utils.StringUtils;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -39,9 +39,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/api/v1/auth/refresh",
-            "/mp/webhook",
-            "/mp/oauth/callback",
-            "/public",
+            "/mp/**",
+            "/public/**",
             "/actuator/health",
             "/favicon.ico");
 
@@ -80,18 +79,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String jwt = HttpUtils.getCookieValue(request, "auth_token").orElse(null);
 
-            if (!StringUtils.hasText(jwt) || jwt.length() > MAX_TOKEN_LENGTH) {
+            if (StringUtils.hasText(jwt) == false || jwt.length() > MAX_TOKEN_LENGTH) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            if (!tokenProvider.validateToken(jwt)) {
+            if (tokenProvider.validateToken(jwt) == false) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
             String username = tokenProvider.getUsernameFromJWT(jwt);
-            if (!StringUtils.hasText(username)) {
+            if (StringUtils.hasText(username) == false) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -113,6 +112,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception ex) {
             HttpUtils.logSecurityEvent("JWT_AUTH_ERROR", request, ex.getMessage());
             SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token inválido ou expirado");
+            return;
         }
 
         filterChain.doFilter(request, response);
@@ -133,8 +135,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Usuario usuario = daoController
                     .select()
                     .from(Usuario.class)
-                    .where("email", Condicao.EQUAL, username.toLowerCase().trim())
-                    .limit(1)
+                    .where("email", Condicao.EQUAL, StringUtils.normalize(username))
                     .one();
 
             if (usuario == null)
