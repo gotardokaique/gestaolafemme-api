@@ -62,6 +62,9 @@ public class PerfilUsuario {
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
 
+    public Unidade getUnidade() { return unidade; }
+    public void setUnidade(Unidade unidade) { this.unidade = unidade; }
+
     public Date getDataCadastro() { return dataCadastro; }
     public void setDataCadastro(Date dataCadastro) { this.dataCadastro = dataCadastro; }
 
