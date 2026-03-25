@@ -73,21 +73,21 @@ public class AdminUnitService {
         trans.insert(usuarioUnidade);
 
         // 5. Enviar Email
-        enviarEmailCredenciais(request.nome().trim(), email, senhaTemporaria, request.plano());
+        enviarEmailCredenciais(request.nome().trim(), email, senhaTemporaria);
 
         // Retorna UUID determinístico baseado no ID para evitar modificações em banco
         // via Migration
         return new CriarUnidadeResponseDTO(UUID.nameUUIDFromBytes(unidade.getId().toString().getBytes()));
     }
 
-    private void enviarEmailCredenciais(String nome, String email, String senhaTemporaria, String plano) {
+    private void enviarEmailCredenciais(String nome, String email, String senhaTemporaria) {
         String corpoHtml = """
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; background: #fff;">
                     <div style="text-align: center; margin-bottom: 32px;">
                         <p style="color: #999; font-size: 13px; margin: 4px 0 0;">Sistema de Gestão</p>
                     </div>
                     <h2 style="color: #333; font-size: 20px;">Bem-vinda(o), <strong>%s</strong>! 🎉</h2>
-                    <p style="color: #555; line-height: 1.6;">Sua nova unidade com o plano <strong>%s</strong> foi criada com sucesso. Use as credenciais abaixo para acessar o sistema:</p>
+                    <p style="color: #555; line-height: 1.6;">Sua nova unidade foi criada com sucesso. Use as credenciais abaixo para acessar o sistema:</p>
                     <div style="background: #fdf4f8; border-left: 4px solid #b5477a; padding: 16px 20px; border-radius: 6px; margin: 24px 0;">
                         <p style="margin: 0 0 8px;"><span style="color: #888; font-size: 12px; text-transform: uppercase;">E-mail</span><br><strong style="color: #333;">%s</strong></p>
                         <p style="margin: 0;"><span style="color: #888; font-size: 12px; text-transform: uppercase;">Senha temporária</span><br><strong style="color: #333; letter-spacing: 2px;">%s</strong></p>
@@ -97,7 +97,7 @@ public class AdminUnitService {
                     </div>
                 </div>
                 """
-                .formatted(nome, plano, email, senhaTemporaria);
+                .formatted(nome, email, senhaTemporaria);
 
         try {
             Long adminId = UserContext.getIdUsuario();
