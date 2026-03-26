@@ -16,7 +16,7 @@ import com.gestao.lafemme.api.services.AdminUnitService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("api/v1/admin")
 public class AdminUnitController {
 
     private final AdminUnitService adminUnitService;
