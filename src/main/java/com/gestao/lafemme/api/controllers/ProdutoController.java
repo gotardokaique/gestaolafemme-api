@@ -30,8 +30,11 @@ public class ProdutoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProdutoResponseDTO>> listar(@RequestParam(name = "ativos", required = false) Boolean ativo) {
-        return ResponseEntity.ok(produtoService.listarProdutos(ativo));
+    public ResponseEntity<List<ProdutoResponseDTO>> listar(
+            @RequestParam(name = "ativos", required = false) Boolean ativo, 
+            com.gestao.lafemme.api.dev.FilterQuery filter
+    ) {
+        return ResponseEntity.ok(produtoService.listarProdutos(ativo, filter));
     }
 
     @GetMapping("/{id}")

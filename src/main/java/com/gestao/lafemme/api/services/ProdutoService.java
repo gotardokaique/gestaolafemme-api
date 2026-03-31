@@ -16,6 +16,7 @@ import com.gestao.lafemme.api.controllers.dto.ProdutoResponseDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
 import com.gestao.lafemme.api.db.WhereDB;
+import com.gestao.lafemme.api.dev.FilterQuery;
 import com.gestao.lafemme.api.entity.Anexo;
 import com.gestao.lafemme.api.entity.CategoriaProduto;
 import com.gestao.lafemme.api.entity.Estoque;
@@ -36,13 +37,17 @@ public class ProdutoService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProdutoResponseDTO> listarProdutos(Boolean ativos) {
+    public List<ProdutoResponseDTO> listarProdutos(Boolean ativos, FilterQuery filter) {
         List<Produto> listProd;
 
         WhereDB where = new WhereDB();
         where.add("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade());
         if (ativos != null) {
             where.add("ativo", Condicao.EQUAL, ativos);
+        }
+
+        if (filter != null) {
+            filter.applyTo(where);
         }
 
         try {
