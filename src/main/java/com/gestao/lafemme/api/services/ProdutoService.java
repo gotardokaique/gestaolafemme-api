@@ -38,7 +38,7 @@ public class ProdutoService {
     @Transactional(readOnly = true)
     public List<ProdutoResponseDTO> listarProdutos(Boolean ativos) {
         List<Produto> listProd;
-        
+
         WhereDB where = new WhereDB();
         where.add("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade());
         if (ativos != null) {
@@ -54,7 +54,7 @@ public class ProdutoService {
                     .where(where)
                     .orderBy("nome", true)
                     .list();
-            
+
         } catch (NotFoundException not) {
             listProd = new ArrayList<>();
         }
@@ -73,7 +73,7 @@ public class ProdutoService {
                     .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                     .id(id);
             return ProdutoResponseDTO.refactor(prod);
-            
+
         } catch (NotFoundException e) {
             throw new NotFoundException("Produto não encontrado: " + id);
         }
@@ -84,6 +84,7 @@ public class ProdutoService {
 
         validarTexto(dto.nome(), "nome");
         validarTexto(dto.codigo(), "codigo");
+        validatTamanho(dto.descricao());
 
         if (dto.categoriaId() == null) {
             throw new BusinessException("Campo obrigatório: categoriaId");
@@ -98,11 +99,11 @@ public class ProdutoService {
 
         try {
             dao.select()
-                .from(Produto.class)
-                .join("unidade")
-                .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
-                .where("codigo", Condicao.EQUAL, dto.codigo().trim())
-                .one();
+                    .from(Produto.class)
+                    .join("unidade")
+                    .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
+                    .where("codigo", Condicao.EQUAL, dto.codigo().trim())
+                    .one();
 
             throw new BusinessException("Já existe produto com esse código nesta unidade.");
         } catch (NotFoundException not) {
@@ -120,7 +121,7 @@ public class ProdutoService {
         produto.setUnidade(UserContext.getUnidade());
 
         Produto salvo = dao.insert(produto);
-        
+
         Estoque estoque = new Estoque();
         estoque.setProduto(salvo);
         estoque.setQuantidadeAtual(dto.quantidadeInicial() != null ? dto.quantidadeInicial() : 0);
@@ -139,7 +140,7 @@ public class ProdutoService {
 
     @Transactional
     public Produto editarProduto(Long produtoId, ProdutoRequestDTO dto) throws Exception {
-        
+
         Produto produto = carregarProdutoEntidade(produtoId);
 
         if (dto.nome() != null) {
@@ -160,7 +161,7 @@ public class ProdutoService {
                             .where("codigo", Condicao.EQUAL, novoCodigo)
                             .one();
 
-                     throw new BusinessException("Já existe produto com esse código nesta unidade.");
+                    throw new BusinessException("Já existe produto com esse código nesta unidade.");
                 } catch (NotFoundException not) {
                     // ok
                 }
@@ -168,9 +169,14 @@ public class ProdutoService {
             }
         }
 
-        if (dto.descricao() != null) produto.setDescricao(dto.descricao());
-        if (dto.valorCusto() != null) produto.setValorCusto(dto.valorCusto());
-        if (dto.valorVenda() != null) produto.setValorVenda(dto.valorVenda());
+        if (dto.descricao() != null) {
+            validatTamanho(dto.descricao());
+            produto.setDescricao(dto.descricao());
+        }
+        if (dto.valorCusto() != null)
+            produto.setValorCusto(dto.valorCusto());
+        if (dto.valorVenda() != null)
+            produto.setValorVenda(dto.valorVenda());
 
         if (dto.categoriaId() != null) {
             CategoriaProduto categoria = dao
@@ -179,7 +185,7 @@ public class ProdutoService {
                     .join("unidade")
                     .where("unidade.id", Condicao.EQUAL, UserContext.getIdUnidade())
                     .id(dto.categoriaId());
-            
+
             produto.setCategoriaProduto(categoria);
         }
 
@@ -201,12 +207,11 @@ public class ProdutoService {
 
     @Transactional
     public void ativarInativarProduto(Long produtoId) throws Exception {
-    	
+
         Produto produto = carregarProdutoEntidade(produtoId);
         produto.setAtivo(!produto.isAtivo());
         dao.update(produto);
     }
-
 
     @Transactional
     public void excluirProdutoFisico(Long produtoId) throws Exception {
@@ -215,17 +220,18 @@ public class ProdutoService {
 
         try {
             dao.select()
-               .from(MovimentacaoEstoque.class)
-               .join("estoque")
-               .where("estoque.produto.id", Condicao.EQUAL, produtoId)
-               .one();
+                    .from(MovimentacaoEstoque.class)
+                    .join("estoque")
+                    .where("estoque.produto.id", Condicao.EQUAL, produtoId)
+                    .one();
 
             throw new BusinessException("Não é permitido excluir produto com movimentações registradas.");
         } catch (NotFoundException not) {
             // ok
         }
 
-        // remove estoque (CascadeType.ALL no Produto cuidaria disso, mas vamos garantir se necessário)
+        // remove estoque (CascadeType.ALL no Produto cuidaria disso, mas vamos garantir
+        // se necessário)
         // Produto.java tem @OneToOne(mappedBy = "produto", cascade = CascadeType.ALL)
         dao.delete(produto);
     }
@@ -234,8 +240,7 @@ public class ProdutoService {
     public void ajustarEstoque(
             Long produtoId,
             int novaQuantidade,
-            String observacao
-    ) throws Exception {
+            String observacao) throws Exception {
 
         if (novaQuantidade < 0) {
             throw new BusinessException("Quantidade não pode ser negativa.");
@@ -247,7 +252,8 @@ public class ProdutoService {
         int quantidadeAnterior = estoque.getQuantidadeAtual();
         int diferenca = novaQuantidade - quantidadeAnterior;
 
-        if (diferenca == 0) return;
+        if (diferenca == 0)
+            return;
 
         estoque.setQuantidadeAtual(novaQuantidade);
         dao.update(estoque);
@@ -270,7 +276,7 @@ public class ProdutoService {
             throw new BusinessException("Campo obrigatório: " + campo);
         }
     }
-    
+
     private Produto carregarProdutoEntidade(Long id) throws Exception {
         try {
             return dao.select()
@@ -381,5 +387,13 @@ public class ProdutoService {
         }
 
         dao.delete(anexo);
+    }
+
+    private static void validatTamanho(String texto) throws BusinessException {
+        if (texto == null || texto.isBlank())
+            return;
+        if (texto.length() > 4000) {
+            throw new BusinessException("Tamanho do texto inválido.");
+        }
     }
 }

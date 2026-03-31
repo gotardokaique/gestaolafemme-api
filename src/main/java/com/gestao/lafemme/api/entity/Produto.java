@@ -20,7 +20,7 @@ public class Produto {
     @Column(name = "prod_codigo", nullable = false, unique = true, length = 60)
     private String codigo;
 
-    @Column(name = "prod_descricao", length = 255)
+    @Column(name = "prod_descricao", length = 4000)
     private String descricao;
 
     @Column(name = "prod_valor_custo", nullable = false, precision = 19, scale = 2)
@@ -42,18 +42,20 @@ public class Produto {
 
     @OneToOne(mappedBy = "produto", fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false)
     private Estoque estoque;
-    
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "uni_id", nullable = false)
     private Unidade unidade;
 
-
-    public Produto() {}
+    public Produto() {
+    }
 
     @PrePersist
     protected void onCreate() {
-        if (this.dataCadastro == null) this.dataCadastro = new Date();
-        if (!this.ativo) this.ativo = true;
+        if (this.dataCadastro == null)
+            this.dataCadastro = new Date();
+        if (!this.ativo)
+            this.ativo = true;
     }
 
     public Long getId() {
@@ -118,14 +120,14 @@ public class Produto {
     }
 
     public Unidade getUnidade() {
-		return unidade;
-	}
+        return unidade;
+    }
 
-	public void setUnidade(Unidade unidade) {
-		this.unidade = unidade;
-	}
+    public void setUnidade(Unidade unidade) {
+        this.unidade = unidade;
+    }
 
-	public void setDataCadastro(Date dataCadastro) {
+    public void setDataCadastro(Date dataCadastro) {
         this.dataCadastro = dataCadastro;
     }
 
@@ -153,8 +155,10 @@ public class Produto {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Produto other)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof Produto other))
+            return false;
         return id != null && Objects.equals(id, other.id);
     }
 
