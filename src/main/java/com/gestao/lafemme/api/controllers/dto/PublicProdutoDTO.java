@@ -10,16 +10,18 @@ public record PublicProdutoDTO(
         String descricao,
         BigDecimal preco,
         String categoria,
-        int quantidadeEstoque
+        int quantidadeEstoque,
+        boolean hasFoto
 ) {
-    public static PublicProdutoDTO fromEntity(Produto p) {
+    public static PublicProdutoDTO fromEntity(Produto p, boolean hasFoto) {
         return new PublicProdutoDTO(
                 p.getId(),
                 p.getNome(),
                 p.getDescricao(),
                 p.getValorVenda(),
                 p.getCategoriaProduto() != null ? p.getCategoriaProduto().getNome() : null,
-                p.getEstoque() != null ? p.getEstoque().getQuantidadeAtual() : 0
+                p.getEstoque() != null ? p.getEstoque().getQuantidadeAtual() : 0,
+                hasFoto
         );
     }
 }

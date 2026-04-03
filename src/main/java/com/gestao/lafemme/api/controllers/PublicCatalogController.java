@@ -3,6 +3,7 @@ package com.gestao.lafemme.api.controllers;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gestao.lafemme.api.controllers.dto.AnexoFotoDTO;
 import com.gestao.lafemme.api.controllers.dto.PublicCategoriaDTO;
 import com.gestao.lafemme.api.controllers.dto.PublicProdutoDTO;
 import com.gestao.lafemme.api.services.PublicCatalogService;
@@ -50,6 +52,28 @@ public class PublicCatalogController {
                 return ResponseEntity.notFound().build();
             }
             return ResponseEntity.ok(produto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    @GetMapping(value = "/produtos/{id}/foto", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<byte[]> buscarFoto(
+            @RequestHeader(value = "X-Api-Key", required = false) String token,
+            @PathVariable Long id) {
+
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            AnexoFotoDTO foto = publicCatalogService.buscarFoto(token, id);
+            if (foto == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(foto.mimeType()))
+                    .body(foto.arquivo());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

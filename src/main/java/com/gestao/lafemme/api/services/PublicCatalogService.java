@@ -1,19 +1,23 @@
 package com.gestao.lafemme.api.services;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.controllers.dto.PublicProdutoDTO;
+import com.gestao.lafemme.api.controllers.dto.AnexoFotoDTO;
 import com.gestao.lafemme.api.controllers.dto.PublicCategoriaDTO;
+import com.gestao.lafemme.api.controllers.dto.PublicProdutoDTO;
 import com.gestao.lafemme.api.db.Condicao;
 import com.gestao.lafemme.api.db.DAOController;
+import com.gestao.lafemme.api.entity.Anexo;
 import com.gestao.lafemme.api.entity.CategoriaProduto;
 import com.gestao.lafemme.api.entity.Configuracao;
 import com.gestao.lafemme.api.entity.Produto;
 import com.gestao.lafemme.api.entity.UsuarioUnidade;
+import com.gestao.lafemme.api.enuns.TipoAnexo;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -44,6 +48,22 @@ public class PublicCatalogService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Uma query batch para saber quais produtos têm FOTO_PRODUTO.
+     * Evita N+1: um único SELECT no lugar de um por produto.
+     */
+    private Set<Long> produtosComFoto(List<Long> produtoIds) {
+        if (produtoIds.isEmpty()) return Set.of();
+        List<Anexo> anexos = dao.select()
+                .from(Anexo.class)
+                .where("produto.id", Condicao.IN, produtoIds)
+                .where("tipo", Condicao.IN, List.of(TipoAnexo.FOTO_PRODUTO, TipoAnexo.FOTO_CATALOGO_PRODUTO))
+                .list();
+        return anexos.stream()
+                .map(a -> a.getProduto().getId())
+                .collect(Collectors.toSet());
+    }
+
     @Transactional(readOnly = true)
     public List<PublicProdutoDTO> listarProdutos(String token) {
         List<Long> uniIds = getUnidadesIds(token);
@@ -57,8 +77,11 @@ public class PublicCatalogService {
                 .where("estoque.quantidadeAtual", Condicao.GREATER_THAN, 0)
                 .list();
 
+        List<Long> ids = produtos.stream().map(Produto::getId).collect(Collectors.toList());
+        Set<Long> comFoto = produtosComFoto(ids);
+
         return produtos.stream()
-                .map(PublicProdutoDTO::fromEntity)
+                .map(p -> PublicProdutoDTO.fromEntity(p, comFoto.contains(p.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -78,10 +101,37 @@ public class PublicCatalogService {
                     .where("estoque.quantidadeAtual", Condicao.GREATER_THAN, 0)
                     .one();
 
-            return PublicProdutoDTO.fromEntity(p);
+            boolean hasFoto = !produtosComFoto(List.of(p.getId())).isEmpty();
+            return PublicProdutoDTO.fromEntity(p, hasFoto);
         } catch (EntityNotFoundException e) {
             return null;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public AnexoFotoDTO buscarFoto(String token, Long produtoId) {
+        List<Long> uniIds = getUnidadesIds(token);
+        if (uniIds.isEmpty())
+            return null;
+
+        // Prioridade: FOTO_PRODUTO primeiro, depois FOTO_CATALOGO_PRODUTO
+        List<Anexo> anexos = dao.select()
+                .from(Anexo.class)
+                .where("produto.id", Condicao.EQUAL, produtoId)
+                .where("tipo", Condicao.IN, List.of(TipoAnexo.FOTO_PRODUTO, TipoAnexo.FOTO_CATALOGO_PRODUTO))
+                .where("produto.unidade.id", Condicao.IN, uniIds)
+                .list();
+
+        if (anexos.isEmpty())
+            return null;
+
+        // Prefere FOTO_PRODUTO; se não tiver, usa a primeira FOTO_CATALOGO_PRODUTO
+        Anexo foto = anexos.stream()
+                .filter(a -> a.getTipo() == TipoAnexo.FOTO_PRODUTO)
+                .findFirst()
+                .orElse(anexos.get(0));
+
+        return new AnexoFotoDTO(foto.getArquivo(), foto.getMimeType());
     }
 
     @Transactional(readOnly = true)
