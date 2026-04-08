@@ -27,7 +27,8 @@ public class PublicCatalogController {
     }
 
     @GetMapping("/produtos")
-    public ResponseEntity<List<PublicProdutoDTO>> listarProdutos(@RequestHeader(value = "X-Api-Key", required = false) String token) {
+    public ResponseEntity<List<PublicProdutoDTO>> listarProdutos(
+            @RequestHeader(value = "X-Api-Key", required = false) String token) {
         if (token == null || token.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -80,7 +81,8 @@ public class PublicCatalogController {
     }
 
     @GetMapping("/categorias")
-    public ResponseEntity<List<PublicCategoriaDTO>> listarCategorias(@RequestHeader(value = "X-Api-Key", required = false) String token) {
+    public ResponseEntity<List<PublicCategoriaDTO>> listarCategorias(
+            @RequestHeader(value = "X-Api-Key", required = false) String token) {
         if (token == null || token.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
