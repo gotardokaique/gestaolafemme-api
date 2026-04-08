@@ -120,7 +120,6 @@ public class PublicCatalogService {
         try {
             produto = dao.select()
                     .from(Produto.class)
-                    .join("estoque")
                     .where("id", Condicao.EQUAL, id)
                     .where("unidade.id", Condicao.IN, uniIds)
                     .where("ativo", Condicao.EQUAL, true)
