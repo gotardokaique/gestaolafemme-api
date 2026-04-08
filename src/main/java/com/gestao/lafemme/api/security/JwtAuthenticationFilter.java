@@ -35,15 +35,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String CACHE_PREFIX = "lf:auth:usr:";
     private static final Duration CACHE_TTL = Duration.ofMinutes(5);
 
-    private static final Set<String> PUBLIC_PATHS = Set.of(
-            "/api/v1/auth/login",
-            "/api/v1/auth/register",
-            "/api/v1/auth/refresh",
-            "/mp/**",
-            "/public/**",
-            "/actuator/health",
-            "/favicon.ico");
-
     private final JwtTokenProvider tokenProvider;
     private final DAOController daoController;
     private final StringRedisTemplate redis;
@@ -62,7 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = HttpUtils.getRequestPath(request);
-        return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+        return path.equals("/api/v1/auth/login")
+                || path.equals("/api/v1/auth/register")
+                || path.equals("/api/v1/auth/refresh")
+                || path.equals("/actuator/health")
+                || path.equals("/favicon.ico")
+                || path.startsWith("/mp/")
+                || path.startsWith("/public/");
     }
 
     @Override
