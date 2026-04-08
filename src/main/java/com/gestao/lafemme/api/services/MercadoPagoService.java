@@ -102,7 +102,7 @@ public class MercadoPagoService {
 
     public Map<String, Object> consultarPagamento(String paymentId, String accessToken) throws Exception {
         RestTemplate restTemplate = new RestTemplate();
-        String url = urlPayment + paymentId;
+        String url = urlPayment + "/" + paymentId;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
