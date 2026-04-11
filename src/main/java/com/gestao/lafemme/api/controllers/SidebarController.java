@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gestao.lafemme.api.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.entity.Usuario;
 
 @RestController
@@ -16,7 +16,7 @@ public class SidebarController {
 
     @GetMapping
     public ResponseEntity<SidebarResponse> getSidebar() {
-        Usuario usuario = UserContext.getUsuarioAutenticado();
+        Usuario usuario = ApiUserContext.getUsuario();
 
         UserDTO user = new UserDTO(
                 usuario.getNome(),

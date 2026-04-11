@@ -1,7 +1,7 @@
 package com.gestao.lafemme.api.services;
 
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.Configuracao;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 import org.springframework.stereotype.Repository;

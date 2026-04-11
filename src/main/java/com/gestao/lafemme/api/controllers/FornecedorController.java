@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gestao.lafemme.api.controllers.dto.FornecedorRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.FornecedorResponseDTO;
-import com.gestao.lafemme.api.dev.FilterQuery;
+import com.gen.core.db.filter.FilterQuery;
 import com.gestao.lafemme.api.entity.Fornecedor;
 import com.gestao.lafemme.api.services.FornecedorService;
 

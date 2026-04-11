@@ -8,11 +8,11 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
 import com.gestao.lafemme.api.controllers.dto.DashboardDTO;
 import com.gestao.lafemme.api.controllers.dto.FinanceiroResumoDTO;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.Compra;
 import com.gestao.lafemme.api.entity.Venda;
 

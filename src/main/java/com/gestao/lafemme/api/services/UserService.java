@@ -7,16 +7,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.bo.EmailBO;
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.CheckTrocarSenhaResponseDTO;
 import com.gestao.lafemme.api.controllers.dto.CriarNovoUsuarioRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CriarNovoUsuarioResponseDTO;
 import com.gestao.lafemme.api.controllers.dto.TrocarSenhaRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.UserMeResponseDTO;
 import com.gestao.lafemme.api.controllers.dto.UsuarioUnidadeDTO;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
-import com.gestao.lafemme.api.db.TransactionDB;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
+import com.gen.core.db.TransactionDB;
 import com.gestao.lafemme.api.entity.PerfilUsuario;
 import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
@@ -60,7 +61,7 @@ public class UserService {
 
             return UserMeResponseDTO.from(usuario);
         } catch (Exception e) {
-            return UserMeResponseDTO.from(UserContext.getUsuario());
+            return UserMeResponseDTO.from(ApiUserContext.getUsuario());
         }
     }
 

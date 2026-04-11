@@ -15,8 +15,8 @@ import org.springframework.web.client.RestTemplate;
 
 import com.gestao.lafemme.api.controllers.dto.MercadoPagoPixResponse;
 import com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.MovimentacaoEstoque;
 import com.gestao.lafemme.api.entity.Venda;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;

@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.constants.SitId;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.Situacao;
 
 @Component

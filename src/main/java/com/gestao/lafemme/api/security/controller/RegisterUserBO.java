@@ -22,17 +22,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
-import com.gestao.lafemme.api.db.TransactionDB;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
+import com.gen.core.db.TransactionDB;
 import com.gestao.lafemme.api.entity.PerfilUsuario;
 import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.entity.UsuarioUnidade;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
-import com.gestao.lafemme.api.utils.HttpUtils;
-import com.gestao.lafemme.api.utils.StringUtils;
+import com.gen.core.security.TokenService;
+import com.gen.core.utils.HttpUtils;
+import com.gen.core.utils.StringUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 

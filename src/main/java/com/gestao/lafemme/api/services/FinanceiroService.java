@@ -7,12 +7,13 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.FinanceiroResumoDTO;
 import com.gestao.lafemme.api.controllers.dto.LancamentoFinanceiroRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.LancamentoFinanceiroResponseDTO;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.LancamentoFinanceiro;
 import com.gestao.lafemme.api.enuns.TipoLancamentoFinanceiro;
 
@@ -61,8 +62,8 @@ public class FinanceiroService {
         lanc.setTipo(dto.tipo());
         lanc.setValor(dto.valor());
         lanc.setDescricao(dto.descricao());
-        lanc.setUsuario(UserContext.getUsuario());
-        lanc.setUnidade(UserContext.getUnidade());
+        lanc.setUsuario(ApiUserContext.getUsuario());
+        lanc.setUnidade(ApiUserContext.getUnidade());
 
         dao.insert(lanc);
     }

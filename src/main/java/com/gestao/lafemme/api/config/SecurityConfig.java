@@ -28,8 +28,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.security.JwtAuthenticationFilter;
 

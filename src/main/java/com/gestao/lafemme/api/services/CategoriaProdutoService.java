@@ -6,13 +6,14 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.CategoriaProdutoRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CategoriaProdutoResponseDTO;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
-import com.gestao.lafemme.api.db.WhereDB;
-import com.gestao.lafemme.api.dev.FilterQuery;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
+import com.gen.core.db.WhereDB;
+import com.gen.core.db.filter.FilterQuery;
 import com.gestao.lafemme.api.entity.CategoriaProduto;
 import com.gestao.lafemme.api.entity.Produto;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
@@ -53,7 +54,7 @@ public class CategoriaProdutoService {
         cat.setNome(nomeNormalizado);
         cat.setDescricao(dto.descricao());
         cat.setAtivo(true);
-        cat.setUnidade(UserContext.getUnidade());
+        cat.setUnidade(ApiUserContext.getUnidade());
 
         return dao.insert(cat);
     }

@@ -8,11 +8,12 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.CompraRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CompraResponseDTO;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.Compra;
 import com.gestao.lafemme.api.entity.Estoque;
 import com.gestao.lafemme.api.entity.Fornecedor;
@@ -23,7 +24,7 @@ import com.gestao.lafemme.api.enuns.TipoLancamentoFinanceiro;
 import com.gestao.lafemme.api.enuns.TipoMovimentacaoEstoque;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
-import com.gestao.lafemme.api.utils.MathUtils;
+import com.gen.core.utils.MathUtils;
 
 @Service
 public class CompraService {
@@ -51,8 +52,8 @@ public class CompraService {
         compra.setValorTotal(valorTotal);
         compra.setFormaPagamento(dto.formaPagamento().trim());
         compra.setDataCompra(dto.dataCompra() != null ? dto.dataCompra() : new Date());
-        compra.setUsuario(UserContext.getUsuario());
-        compra.setUnidade(UserContext.getUnidade());
+        compra.setUsuario(ApiUserContext.getUsuario());
+        compra.setUnidade(ApiUserContext.getUnidade());
 
         dao.insert(compra);
 
@@ -139,8 +140,8 @@ public class CompraService {
         lanc.setValor(compra.getValorTotal());
         lanc.setDescricao("Compra - " + compra.getFormaPagamento());
         lanc.setDataLancamento(new Date());
-        lanc.setUsuario(UserContext.getUsuario());
-        lanc.setUnidade(UserContext.getUnidade());
+        lanc.setUsuario(ApiUserContext.getUsuario());
+        lanc.setUnidade(ApiUserContext.getUnidade());
 
         dao.insert(lanc);
     }
@@ -164,8 +165,8 @@ public class CompraService {
         mov.setObservacao(observacao);
         mov.setEstoque(estoque);
         mov.setCompra(compra);
-        mov.setUsuario(UserContext.getUsuario());
-        mov.setUnidade(UserContext.getUnidade());
+        mov.setUsuario(ApiUserContext.getUsuario());
+        mov.setUnidade(ApiUserContext.getUnidade());
 
         dao.insert(mov);
     }

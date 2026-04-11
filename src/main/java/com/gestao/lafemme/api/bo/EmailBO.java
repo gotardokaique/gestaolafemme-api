@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.gestao.lafemme.api.entity.Configuracao;
 import com.gestao.lafemme.api.services.ConfiguracaoRepository;
-import com.gestao.lafemme.api.utils.StringEncryptUtils;
+import com.gen.core.utils.StringEncryptUtils;
 
 import jakarta.mail.Authenticator;
 import jakarta.mail.Message;

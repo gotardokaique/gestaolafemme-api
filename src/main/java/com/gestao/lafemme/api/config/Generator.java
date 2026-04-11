@@ -6,6 +6,9 @@ import java.util.Scanner;
 
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
+import com.gen.core.generator.CrudGenerator;
+import com.gestao.lafemme.api.entity.Usuario;
+
 public class Generator {
 
     public static void main(String[] args) {
@@ -13,7 +16,9 @@ public class Generator {
             throw new IllegalStateException("Sistema não está em modo desenvolvedor");
         }
 
-        hashUserSenha();
+        // hashUserSenha();
+        CrudGenerator.run(Usuario.class);
+        ;
     }
 
     private static boolean isDeveloper() {

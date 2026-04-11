@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.ApiResponse;
 import com.gestao.lafemme.api.controllers.dto.CriarUnidadeRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CriarUnidadeResponseDTO;
@@ -29,7 +30,7 @@ public class AdminUnitController {
     public ResponseEntity<ApiResponse<CriarUnidadeResponseDTO>> criarUnidade(
             @Valid @RequestBody CriarUnidadeRequestDTO request) {
         
-        String authEmail = UserContext.getUsuario().getEmail();
+        String authEmail = ApiUserContext.getUsuario().getEmail();
         if (authEmail.equalsIgnoreCase("kaiquecgotardo@gmail.com") == false) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "Acesso negado", null));

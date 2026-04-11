@@ -12,15 +12,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.constants.SitId;
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP;
 import com.gestao.lafemme.api.controllers.dto.GerarPagamentoResponse;
 import com.gestao.lafemme.api.controllers.dto.MercadoPagoPixResponse;
 import com.gestao.lafemme.api.controllers.dto.MercadoPagoPreferenceResponse;
 import com.gestao.lafemme.api.controllers.dto.VendaRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.VendaResponseDTO;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.Configuracao;
 import com.gestao.lafemme.api.entity.Estoque;
 import com.gestao.lafemme.api.entity.LancamentoFinanceiro;
@@ -33,7 +34,7 @@ import com.gestao.lafemme.api.enuns.TipoMovimentacaoEstoque;
 import com.gestao.lafemme.api.enuns.TipoPagamentoMP;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
-import com.gestao.lafemme.api.utils.StringEncryptUtils;
+import com.gen.core.utils.StringEncryptUtils;
 
 @Service
 public class VendaService {
@@ -67,8 +68,8 @@ public class VendaService {
         venda.setDataVenda(dto.dataVenda() != null ? dto.dataVenda() : new Date());
         venda.setValorTotal(valorTotal);
         venda.setFormaPagamento(dto.formaPagamento().trim());
-        venda.setUsuario(UserContext.getUsuario());
-        venda.setUnidade(UserContext.getUnidade());
+        venda.setUsuario(ApiUserContext.getUsuario());
+        venda.setUnidade(ApiUserContext.getUnidade());
         venda.setSituacao(new Situacao(SitId.PENDENTE));
 
         dao.insert(venda);
@@ -101,8 +102,8 @@ public class VendaService {
         mov.setEstoque(estoque);
         mov.setVenda(venda);
         mov.setProduto(produto);
-        mov.setUsuario(UserContext.getUsuario());
-        mov.setUnidade(UserContext.getUnidade());
+        mov.setUsuario(ApiUserContext.getUsuario());
+        mov.setUnidade(ApiUserContext.getUnidade());
 
         dao.insert(mov);
     }
@@ -218,8 +219,8 @@ public class VendaService {
             compensacao.setEstoque(estoque);
             compensacao.setVenda(venda);
             compensacao.setProduto(produto);
-            compensacao.setUsuario(UserContext.getUsuario());
-            compensacao.setUnidade(UserContext.getUnidade());
+            compensacao.setUsuario(ApiUserContext.getUsuario());
+            compensacao.setUnidade(ApiUserContext.getUnidade());
             dao.insert(compensacao);
         }
     }

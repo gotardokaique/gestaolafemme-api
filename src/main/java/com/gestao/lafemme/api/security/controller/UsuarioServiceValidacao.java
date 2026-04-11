@@ -5,9 +5,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
-import com.gestao.lafemme.api.db.TransactionDB;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
+import com.gen.core.db.TransactionDB;
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
 

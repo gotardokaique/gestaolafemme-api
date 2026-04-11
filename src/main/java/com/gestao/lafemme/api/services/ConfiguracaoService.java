@@ -7,20 +7,21 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.EmailConfigResponseDTO;
 import com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigResponseDTO;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
-import com.gestao.lafemme.api.db.TransactionDB;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
+import com.gen.core.db.TransactionDB;
 import com.gestao.lafemme.api.entity.Configuracao;
 import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.services.exceptions.BusinessException;
 import com.gestao.lafemme.api.services.exceptions.NotFoundException;
-import com.gestao.lafemme.api.utils.StringEncryptUtils;
+import com.gen.core.utils.StringEncryptUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -198,7 +199,7 @@ public class ConfiguracaoService {
     @Transactional
     public void salvarMercadoPagoConfig(com.sdk.mpoauth.model.MercadoPagoTokenResponse response) throws Exception {
         Long userId = UserContext.getIdUsuario();
-        Unidade unidade = UserContext.getUnidade();
+        Unidade unidade = ApiUserContext.getUnidade();
 
         Configuracao config;
         try {
@@ -240,7 +241,7 @@ public class ConfiguracaoService {
 
     @Transactional(readOnly = true)
     public MercadoPagoConfigResponseDTO buscarMercadoPagoConfig() throws Exception {
-        Unidade unidade = UserContext.getUnidade();
+        Unidade unidade = ApiUserContext.getUnidade();
 
         if (unidade == null) {
             return new MercadoPagoConfigResponseDTO(false, null);
@@ -268,7 +269,7 @@ public class ConfiguracaoService {
     @Transactional
     public void atualizarTipoPagamentoMercadoPago(
             com.gestao.lafemme.api.controllers.dto.MercadoPagoConfigRequestDTO request) throws Exception {
-        Unidade unidade = UserContext.getUnidade();
+        Unidade unidade = ApiUserContext.getUnidade();
         Long userId = UserContext.getIdUsuario();
         if (unidade == null)
             return;
@@ -302,7 +303,7 @@ public class ConfiguracaoService {
 
     @Transactional(readOnly = true)
     public ConfiguracaoMP getMercadoPagoConfig() {
-        Unidade unidade = UserContext.getUnidade();
+        Unidade unidade = ApiUserContext.getUnidade();
 
         if (unidade == null) {
             return null;

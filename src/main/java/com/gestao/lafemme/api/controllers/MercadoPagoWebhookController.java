@@ -4,7 +4,7 @@ import com.gestao.lafemme.api.controllers.dto.MercadoPagoNotificationDTO;
 import com.gestao.lafemme.api.entity.Configuracao;
 import com.gestao.lafemme.api.services.ConfiguracaoService;
 import com.gestao.lafemme.api.services.VendaService;
-import com.gestao.lafemme.api.utils.StringEncryptUtils;
+import com.gen.core.utils.StringEncryptUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 

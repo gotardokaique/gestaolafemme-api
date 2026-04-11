@@ -14,12 +14,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
+import com.gen.core.db.Condicao;
+import com.gen.core.security.JwtTokenProvider;
+import com.gen.core.db.DAOController;
 import com.gestao.lafemme.api.entity.Usuario;
 import com.gestao.lafemme.api.entity.UsuarioUnidade;
-import com.gestao.lafemme.api.utils.HttpUtils;
-import com.gestao.lafemme.api.utils.StringUtils;
+import com.gen.core.utils.HttpUtils;
+import com.gen.core.utils.StringUtils;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

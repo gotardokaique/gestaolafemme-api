@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.gestao.lafemme.api.controllers.dto.CategoriaProdutoRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CategoriaProdutoResponseDTO;
-import com.gestao.lafemme.api.dev.FilterQuery;
+import com.gen.core.db.filter.FilterQuery;
 import com.gestao.lafemme.api.entity.CategoriaProduto;
 import com.gestao.lafemme.api.services.CategoriaProdutoService;
 

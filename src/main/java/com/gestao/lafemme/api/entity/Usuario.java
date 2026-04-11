@@ -11,6 +11,8 @@ import java.util.Objects;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.gen.core.contracts.UserAccount;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -28,7 +30,7 @@ import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "usuario")
-public class Usuario implements UserDetails, Serializable {
+public class Usuario implements UserDetails, UserAccount, Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -148,6 +150,23 @@ public class Usuario implements UserDetails, Serializable {
 
     public Unidade getUnidadeAtiva() { return unidadeAtiva; }
     public void setUnidadeAtiva(Unidade unidadeAtiva) { this.unidadeAtiva = unidadeAtiva; }
+
+    // UserAccount contract
+    @Override
+    public String getPasswordHash() { return senha; }
+
+    @Override
+    public void setPasswordHash(String encoded) { this.senha = encoded; }
+
+    @Override
+    public Long getUnidadeId() {
+        return unidadeAtiva != null ? unidadeAtiva.getId() : null;
+    }
+
+    @Override
+    public String getRole() {
+        return perfilUsuario != null ? perfilUsuario.getNome() : null;
+    }
 
     public boolean isTrocarSenha() { return trocarSenha; }
     public void setTrocarSenha(boolean trocarSenha) { this.trocarSenha = trocarSenha; }

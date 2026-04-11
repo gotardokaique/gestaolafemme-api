@@ -9,14 +9,15 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.context.UserContext;
+import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.FotoDTO;
 import com.gestao.lafemme.api.controllers.dto.ProdutoRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.ProdutoResponseDTO;
-import com.gestao.lafemme.api.db.Condicao;
-import com.gestao.lafemme.api.db.DAOController;
-import com.gestao.lafemme.api.db.WhereDB;
-import com.gestao.lafemme.api.dev.FilterQuery;
+import com.gen.core.db.Condicao;
+import com.gen.core.db.DAOController;
+import com.gen.core.db.WhereDB;
+import com.gen.core.db.filter.FilterQuery;
 import com.gestao.lafemme.api.entity.Anexo;
 import com.gestao.lafemme.api.entity.CategoriaProduto;
 import com.gestao.lafemme.api.entity.Estoque;
@@ -123,7 +124,7 @@ public class ProdutoService {
         produto.setValorVenda(dto.valorVenda() != null ? dto.valorVenda() : BigDecimal.ZERO);
         produto.setCategoriaProduto(categoria);
         produto.setAtivo(true);
-        produto.setUnidade(UserContext.getUnidade());
+        produto.setUnidade(ApiUserContext.getUnidade());
 
         Produto salvo = dao.insert(produto);
 
@@ -131,7 +132,7 @@ public class ProdutoService {
         estoque.setProduto(salvo);
         estoque.setQuantidadeAtual(dto.quantidadeInicial() != null ? dto.quantidadeInicial() : 0);
         estoque.setEstoqueMinimo(dto.estoqueMinimo() != null ? Math.max(dto.estoqueMinimo(), 0) : 0);
-        estoque.setUnidade(UserContext.getUnidade());
+        estoque.setUnidade(ApiUserContext.getUnidade());
 
         dao.insert(estoque);
 
@@ -270,8 +271,8 @@ public class ProdutoService {
         mov.setObservacao(observacao);
         mov.setEstoque(estoque);
         mov.setProduto(produto);
-        mov.setUsuario(UserContext.getUsuario());
-        mov.setUnidade(UserContext.getUnidade());
+        mov.setUsuario(ApiUserContext.getUsuario());
+        mov.setUnidade(ApiUserContext.getUnidade());
 
         dao.insert(mov);
     }

@@ -7,12 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestao.lafemme.api.bo.EmailBO;
-import com.gestao.lafemme.api.utils.StringEncryptUtils;
-import com.gestao.lafemme.api.utils.StringUtils;
-import com.gestao.lafemme.api.context.UserContext;
+import com.gen.core.utils.StringEncryptUtils;
+import com.gen.core.utils.StringUtils;
+import com.gen.core.context.UserContext;
 import com.gestao.lafemme.api.controllers.dto.CriarUnidadeRequestDTO;
 import com.gestao.lafemme.api.controllers.dto.CriarUnidadeResponseDTO;
-import com.gestao.lafemme.api.db.TransactionDB;
+import com.gen.core.db.TransactionDB;
 import com.gestao.lafemme.api.entity.PerfilUsuario;
 import com.gestao.lafemme.api.entity.Unidade;
 import com.gestao.lafemme.api.entity.Usuario;
