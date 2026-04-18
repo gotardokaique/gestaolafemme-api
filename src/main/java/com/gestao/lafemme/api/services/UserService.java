@@ -35,13 +35,13 @@ public class UserService {
     private final SecureRandom secureRandom = new SecureRandom();
     private final EmailBO emailBO;
 
-    public UserService(DAOController dao, TransactionDB trans, 
-                      PasswordEncoder passwordEncoder, UsuarioRepository usuarioRepository, EmailBO emailBO) {
+    public UserService(DAOController dao, TransactionDB trans,
+            PasswordEncoder passwordEncoder, UsuarioRepository usuarioRepository, EmailBO emailBO) {
         this.dao = dao;
         this.trans = trans;
         this.passwordEncoder = passwordEncoder;
         this.usuarioRepository = usuarioRepository;
-		this.emailBO = emailBO;
+        this.emailBO = emailBO;
     }
 
     @Transactional(readOnly = true)
@@ -52,7 +52,8 @@ public class UserService {
                     .join("perfilUsuario")
                     .id(UserContext.getIdUsuario());
 
-            // Carrega unidade explicitamente na transação atual para evitar LazyInitException com objeto do contexto
+            // Carrega unidade explicitamente na transação atual para evitar
+            // LazyInitException com objeto do contexto
             Unidade unidade = dao.select()
                     .from(Unidade.class)
                     .id(UserContext.getIdUnidade());
@@ -67,8 +68,8 @@ public class UserService {
 
     @Transactional
     public CriarNovoUsuarioResponseDTO criarNovoUsuario(CriarNovoUsuarioRequestDTO request) {
-    	Usuario admin = trans.selectById(Usuario.class, UserContext.getIdUsuario());
-    	PerfilUsuario perfilAdmin = admin.getPerfilUsuario();
+        Usuario admin = trans.selectById(Usuario.class, UserContext.getIdUsuario());
+        PerfilUsuario perfilAdmin = admin.getPerfilUsuario();
         if (perfilAdmin == null || !"ADMIN".equalsIgnoreCase(perfilAdmin.getNome())) {
             throw new BusinessException("Apenas administradores podem criar novos usuários.");
         }
@@ -123,47 +124,47 @@ public class UserService {
                         Este é um e-mail automático. Caso não reconheça esta mensagem ou não saiba o que é, ignore-o.
                     </p>
                 </div>
-                """.formatted(nome, email, senhaTemporaria);
+                """
+                .formatted(nome, email, senhaTemporaria);
 
-        
         try {
-            emailBO.criar()	
-                   .remetente(admin.getId())
-                   .destinatario(email)
-                   .mensagem("Suas credenciais de acesso - Lá Femme", corpoHtml)
-                   .enviar();
-            
+            emailBO.criar()
+                    .remetente(admin.getId())
+                    .destinatario(email)
+                    .mensagem("Suas credenciais de acesso - Lá Femme", corpoHtml)
+                    .enviar();
+
         } catch (Exception e) {
-			/* bora bil */
+            throw new BusinessException("Erro ao enviar e-mail. Contate o dev.");
         }
 
         return new CriarNovoUsuarioResponseDTO(email);
     }
-    
+
     private String gerarSenhaTemporaria() {
         String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder senha = new StringBuilder(16);
-        
+
         for (int i = 0; i < 8; i++) {
             int index = secureRandom.nextInt(caracteres.length());
             senha.append(caracteres.charAt(index));
         }
-        
+
         return senha.toString();
     }
 
     @Transactional(readOnly = true)
     public CheckTrocarSenhaResponseDTO checkTrocarSenha() {
         Long usuarioId = UserContext.getIdUsuario();
-        
+
         Usuario usuario = dao.select()
                 .from(Usuario.class)
                 .id(usuarioId);
-        
+
         if (usuario == null) {
             throw new IllegalStateException("Usuário não encontrado");
         }
-        
+
         return new CheckTrocarSenhaResponseDTO(usuario.isTrocarSenha());
     }
 
@@ -171,34 +172,33 @@ public class UserService {
     public void trocarSenhaObrigatoria(TrocarSenhaRequestDTO request) {
         Long usuarioId = UserContext.getIdUsuario();
         Usuario usuario = trans.selectById(Usuario.class, usuarioId);
-        
+
         if (usuario == null) {
             throw new IllegalStateException("Usuário não encontrado");
         }
-        
-        if (!passwordEncoder.matches(request.senhaAtual(), usuario.getSenha())) {
+
+        if (passwordEncoder.matches(request.senhaAtual(), usuario.getSenha()) == false) {
             throw new IllegalArgumentException("Senha atual incorreta");
         }
-        
-        if (!request.senhaNova().equals(request.senhaNovaConfirmacao())) {
+
+        if (request.senhaNova().equals(request.senhaNovaConfirmacao()) == false) {
             throw new IllegalArgumentException("As senhas novas não coincidem");
         }
-        
-        if (!validarSenhaForte(request.senhaNova())) {
+
+        if (validarSenhaForte(request.senhaNova()) == false) {
             throw new IllegalArgumentException(
-                "Senha fraca. A senha deve ter no mínimo 8 caracteres, " +
-                "incluindo letras maiúsculas, minúsculas e números"
-            );
+                    "Senha fraca. A senha deve ter no mínimo 8 caracteres, " +
+                            "incluindo letras maiúsculas, minúsculas e números");
         }
-        
+
         if (passwordEncoder.matches(request.senhaNova(), usuario.getSenha())) {
             throw new IllegalArgumentException("A nova senha deve ser diferente da senha atual");
         }
-        
+
         usuario.setSenha(passwordEncoder.encode(request.senhaNova()));
         usuario.setTrocarSenha(false);
         usuario.setSenhaTrocadaEm(new java.util.Date());
-        
+
         trans.update(usuario);
     }
 
@@ -211,7 +211,7 @@ public class UserService {
         boolean temMinuscula = senha.matches(".*[a-z].*");
         boolean temNumero = senha.matches(".*[0-9].*");
 
-        if (!temMaiuscula || !temMinuscula || !temNumero) {
+        if (temMaiuscula == false || temMinuscula == false || temNumero == false) {
             return false;
         }
 
@@ -226,7 +226,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public java.util.List<UsuarioUnidadeDTO> listarUsuariosDaUnidade() {
         Long unidadeId = UserContext.getIdUnidade();
-        
+
         java.util.List<UsuarioUnidade> vinculos = dao.select()
                 .from(UsuarioUnidade.class)
                 .join("usuario")
@@ -234,21 +234,20 @@ public class UserService {
                 .join("unidade")
                 .where("unidade.id", Condicao.EQUAL, unidadeId)
                 .list();
-        
+
         return vinculos.stream()
                 .map(vinculo -> {
                     Usuario usuario = vinculo.getUsuario();
                     PerfilUsuario perfil = usuario.getPerfilUsuario();
-                    
+
                     return new UsuarioUnidadeDTO(
-                        usuario.getId(),
-                        usuario.getNome(),
-                        usuario.getEmail(),
-                        usuario.getDataCriacao(),
-                        perfil != null ? perfil.getNome() : "Sem perfil",
-                        perfil != null ? perfil.getDescricao() : "",
-                        usuario.isAtivo()
-                    );
+                            usuario.getId(),
+                            usuario.getNome(),
+                            usuario.getEmail(),
+                            usuario.getDataCriacao(),
+                            perfil != null ? perfil.getNome() : "Sem perfil",
+                            perfil != null ? perfil.getDescricao() : "",
+                            usuario.isAtivo());
                 })
                 .collect(java.util.stream.Collectors.toList());
     }
