@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gestao.lafemme.api.constants.SitId;
+import com.gen.core.constants.SitId;
 import com.gen.core.context.UserContext;
 import com.gestao.lafemme.api.context.ApiUserContext;
 import com.gestao.lafemme.api.controllers.dto.ConfiguracaoMP;
